@@ -202,10 +202,14 @@ public class StatisticsController extends ApiController {
   @Operation(summary = "Average review score for each dining commons")
   @PreAuthorize("hasRole('ROLE_USER')")
   @GetMapping("/commons/averages")
-  public List<CommonsAverage> commonsAverages() {
-    log.info("statistics.commonsAverages");
+  public List<CommonsAverage> commonsAverages(
+      @Parameter(name = "period", description = "ALL, 6M, 1M, or 1W")
+          @RequestParam(name = "period", defaultValue = PERIOD_ALL)
+          String period) {
+    log.info("statistics.commonsAverages period={}", period);
+    LocalDateTime cutoff = cutoffForPeriod(period, LocalDateTime.now());
     Map<String, double[]> byCommons = new HashMap<>();
-    for (Review r : approvedReviews()) {
+    for (Review r : filterByCutoff(approvedReviews(), cutoff)) {
       MenuItem item = r.getItem();
       if (item == null || item.getDiningCommonsCode() == null || r.getItemsStars() == null) {
         continue;
@@ -279,10 +283,14 @@ public class StatisticsController extends ApiController {
   public List<MealAverage> commonsMealAverages(
       @Parameter(name = "code", description = "dining commons code, e.g. 'carrillo'")
           @PathVariable("code")
-          String code) {
-    log.info("statistics.commonsMealAverages code={}", code);
+          String code,
+      @Parameter(name = "period", description = "ALL, 6M, 1M, or 1W")
+          @RequestParam(name = "period", defaultValue = PERIOD_ALL)
+          String period) {
+    log.info("statistics.commonsMealAverages code={} period={}", code, period);
+    LocalDateTime cutoff = cutoffForPeriod(period, LocalDateTime.now());
     Map<String, double[]> byMeal = new HashMap<>();
-    for (Review r : approvedReviews()) {
+    for (Review r : filterByCutoff(approvedReviews(), cutoff)) {
       MenuItem item = r.getItem();
       if (item == null
           || item.getMealCode() == null
