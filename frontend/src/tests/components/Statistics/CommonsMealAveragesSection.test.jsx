@@ -27,13 +27,15 @@ describe("CommonsMealAveragesSection tests", () => {
   test("renders the table for the supplied dining commons code", async () => {
     const queryClient = new QueryClient();
     axiosMock
-      .onGet("/api/statistics/commons/carrillo/meals/averages")
+      .onGet("/api/statistics/commons/carrillo/meals/averages", {
+        params: { period: "ALL" },
+      })
       .reply(200, statisticsFixtures.mealAverages);
 
     render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter>
-          <CommonsMealAveragesSection code="carrillo" />
+          <CommonsMealAveragesSection code="carrillo" period="ALL" />
         </MemoryRouter>
       </QueryClientProvider>,
     );
@@ -50,23 +52,26 @@ describe("CommonsMealAveragesSection tests", () => {
   test("useBackend is called with correct cache key, axios params, and initial data", async () => {
     const queryClient = new QueryClient();
     axiosMock
-      .onGet("/api/statistics/commons/carrillo/meals/averages")
+      .onGet("/api/statistics/commons/carrillo/meals/averages", {
+        params: { period: "ALL" },
+      })
       .reply(200, statisticsFixtures.mealAverages);
 
     render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter>
-          <CommonsMealAveragesSection code="carrillo" />
+          <CommonsMealAveragesSection code="carrillo" period="ALL" />
         </MemoryRouter>
       </QueryClientProvider>,
     );
 
     await waitFor(() => {
       expect(useBackendSpy).toHaveBeenCalledWith(
-        ["/api/statistics/commons/carrillo/meals/averages"],
+        ["/api/statistics/commons/carrillo/meals/averages", "ALL"],
         {
           method: "GET",
           url: "/api/statistics/commons/carrillo/meals/averages",
+          params: { period: "ALL" },
         },
         [],
       );
@@ -76,23 +81,26 @@ describe("CommonsMealAveragesSection tests", () => {
   test("fetches a different URL when the code prop changes", async () => {
     const queryClient = new QueryClient();
     axiosMock
-      .onGet("/api/statistics/commons/ortega/meals/averages")
+      .onGet("/api/statistics/commons/ortega/meals/averages", {
+        params: { period: "ALL" },
+      })
       .reply(200, statisticsFixtures.ortegaMealAverages);
 
     render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter>
-          <CommonsMealAveragesSection code="ortega" />
+          <CommonsMealAveragesSection code="ortega" period="ALL" />
         </MemoryRouter>
       </QueryClientProvider>,
     );
 
     await waitFor(() => {
       expect(useBackendSpy).toHaveBeenCalledWith(
-        ["/api/statistics/commons/ortega/meals/averages"],
+        ["/api/statistics/commons/ortega/meals/averages", "ALL"],
         {
           method: "GET",
           url: "/api/statistics/commons/ortega/meals/averages",
+          params: { period: "ALL" },
         },
         [],
       );
@@ -108,13 +116,15 @@ describe("CommonsMealAveragesSection tests", () => {
   test("renders the empty-state message when there are no meal averages", async () => {
     const queryClient = new QueryClient();
     axiosMock
-      .onGet("/api/statistics/commons/carrillo/meals/averages")
+      .onGet("/api/statistics/commons/carrillo/meals/averages", {
+        params: { period: "ALL" },
+      })
       .reply(200, []);
 
     render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter>
-          <CommonsMealAveragesSection code="carrillo" />
+          <CommonsMealAveragesSection code="carrillo" period="ALL" />
         </MemoryRouter>
       </QueryClientProvider>,
     );
@@ -122,5 +132,40 @@ describe("CommonsMealAveragesSection tests", () => {
     expect(
       await screen.findByTestId("CommonsMealAveragesSection-empty"),
     ).toHaveTextContent("No reviews available yet.");
+  });
+
+  test("passes the period prop through as a query param and cache key", async () => {
+    const queryClient = new QueryClient();
+    axiosMock
+      .onGet("/api/statistics/commons/carrillo/meals/averages", {
+        params: { period: "1W" },
+      })
+      .reply(200, statisticsFixtures.mealAverages);
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <CommonsMealAveragesSection code="carrillo" period="1W" />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => {
+      expect(useBackendSpy).toHaveBeenCalledWith(
+        ["/api/statistics/commons/carrillo/meals/averages", "1W"],
+        {
+          method: "GET",
+          url: "/api/statistics/commons/carrillo/meals/averages",
+          params: { period: "1W" },
+        },
+        [],
+      );
+    });
+
+    expect(
+      await screen.findByTestId(
+        "CommonsMealAveragesSection-table-cell-row-0-col-mealCode",
+      ),
+    ).toHaveTextContent("breakfast");
   });
 });

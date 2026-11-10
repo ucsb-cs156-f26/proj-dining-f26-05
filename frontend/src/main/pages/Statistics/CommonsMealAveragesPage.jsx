@@ -3,6 +3,7 @@ import { Form } from "react-bootstrap";
 import BasicLayout from "main/layouts/BasicLayout/BasicLayout";
 import CommonsMealAveragesSection from "main/components/Statistics/CommonsMealAveragesSection";
 import { useBackend } from "main/utils/useBackend";
+import { PERIOD_OPTIONS } from "main/pages/Statistics/statisticsConstants";
 
 export default function CommonsMealAveragesPage() {
   const { data: commons } = useBackend(
@@ -12,6 +13,11 @@ export default function CommonsMealAveragesPage() {
   );
 
   const [selectedCode, setSelectedCode] = useState("");
+  const [period, setPeriod] = useState("ALL");
+
+  const onChangePeriod = (e) => {
+    setPeriod(e.target.value);
+  };
 
   const effectiveCode = selectedCode || commons[0]?.code;
 
@@ -38,7 +44,30 @@ export default function CommonsMealAveragesPage() {
             </Form.Select>
           </Form.Group>
         )}
-        {effectiveCode && <CommonsMealAveragesSection code={effectiveCode} />}
+        <Form.Group className="mb-3">
+          <Form.Label htmlFor="CommonsMealAveragesPage-period-select">
+            Time period
+          </Form.Label>
+          <Form.Select
+            id="CommonsMealAveragesPage-period-select"
+            data-testid="CommonsMealAveragesPage-period-select"
+            value={period}
+            onChange={onChangePeriod}
+          >
+            {PERIOD_OPTIONS.map((opt) => (
+              <option
+                key={opt.value}
+                value={opt.value}
+                data-testid={`CommonsMealAveragesPage-period-option-${opt.value}`}
+              >
+                {opt.label}
+              </option>
+            ))}
+          </Form.Select>
+        </Form.Group>
+        {effectiveCode && (
+          <CommonsMealAveragesSection code={effectiveCode} period={period} />
+        )}
       </div>
     </BasicLayout>
   );
