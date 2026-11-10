@@ -791,6 +791,60 @@ public class StatisticsControllerTests extends ControllerTestCase {
 
   @WithMockUser(roles = {"USER"})
   @Test
+  public void commons_averages_filters_by_period() throws Exception {
+    LocalDateTime now = LocalDateTime.now();
+    MenuItem waffle = item(1L, "Waffle", "carrillo", "breakfast", "Bakery");
+    when(reviewRepository.findByStatus(ModerationStatus.APPROVED))
+        .thenReturn(
+            Arrays.asList(
+                review(waffle, 5L, now.minusDays(1)), review(waffle, 1L, now.minusDays(30))));
+
+    MvcResult response =
+        mockMvc
+            .perform(get("/api/statistics/commons/averages").param("period", "1W"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    List<CommonsAverage> result =
+        objectMapper.readValue(
+            response.getResponse().getContentAsString(),
+            new TypeReference<List<CommonsAverage>>() {});
+
+    assertEquals(1, result.size());
+    assertEquals(5.0, result.get(0).getAverageStars());
+    assertEquals(Long.valueOf(1L), result.get(0).getReviewCount());
+  }
+
+  @WithMockUser(roles = {"USER"})
+  @Test
+  public void commons_averages_includes_old_reviews_for_default_and_all_and_unknown_period()
+      throws Exception {
+    LocalDateTime now = LocalDateTime.now();
+    MenuItem waffle = item(1L, "Waffle", "carrillo", "breakfast", "Bakery");
+    when(reviewRepository.findByStatus(ModerationStatus.APPROVED))
+        .thenReturn(
+            Arrays.asList(
+                review(waffle, 5L, now.minusDays(1)), review(waffle, 1L, now.minusDays(30))));
+
+    for (String url :
+        new String[] {
+          "/api/statistics/commons/averages",
+          "/api/statistics/commons/averages?period=ALL",
+          "/api/statistics/commons/averages?period=bogus"
+        }) {
+      MvcResult response = mockMvc.perform(get(url)).andExpect(status().isOk()).andReturn();
+      List<CommonsAverage> result =
+          objectMapper.readValue(
+              response.getResponse().getContentAsString(),
+              new TypeReference<List<CommonsAverage>>() {});
+      assertEquals(1, result.size());
+      assertEquals(3.0, result.get(0).getAverageStars());
+      assertEquals(Long.valueOf(2L), result.get(0).getReviewCount());
+    }
+  }
+
+  @WithMockUser(roles = {"USER"})
+  @Test
   public void commons_averages_over_time_groups_by_month_and_sorts() throws Exception {
     MenuItem waffle = item(1L, "Waffle", "carrillo", "breakfast", "Bakery");
     MenuItem soup = item(2L, "Soup", "ortega", "lunch", "Stove");
@@ -920,6 +974,57 @@ public class StatisticsControllerTests extends ControllerTestCase {
     assertEquals("carrillo", result.get(1).getDiningCommonsCode());
     assertEquals(4.0, result.get(1).getAverageStars());
     assertEquals(Long.valueOf(2L), result.get(1).getReviewCount());
+  }
+
+  @WithMockUser(roles = {"USER"})
+  @Test
+  public void commons_meal_averages_filters_by_period() throws Exception {
+    LocalDateTime now = LocalDateTime.now();
+    MenuItem lunch = item(1L, "Salad", "carrillo", "lunch", "Station");
+    when(reviewRepository.findByStatus(ModerationStatus.APPROVED))
+        .thenReturn(
+            Arrays.asList(
+                review(lunch, 5L, now.minusDays(1)), review(lunch, 1L, now.minusDays(30))));
+
+    MvcResult response =
+        mockMvc
+            .perform(get("/api/statistics/commons/carrillo/meals/averages").param("period", "1W"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    List<MealAverage> result =
+        objectMapper.readValue(
+            response.getResponse().getContentAsString(), new TypeReference<List<MealAverage>>() {});
+
+    assertEquals(1, result.size());
+    assertEquals(5.0, result.get(0).getAverageStars());
+    assertEquals(Long.valueOf(1L), result.get(0).getReviewCount());
+  }
+
+  @WithMockUser(roles = {"USER"})
+  @Test
+  public void commons_meal_averages_includes_old_reviews_for_default_and_all() throws Exception {
+    LocalDateTime now = LocalDateTime.now();
+    MenuItem lunch = item(1L, "Salad", "carrillo", "lunch", "Station");
+    when(reviewRepository.findByStatus(ModerationStatus.APPROVED))
+        .thenReturn(
+            Arrays.asList(
+                review(lunch, 5L, now.minusDays(1)), review(lunch, 1L, now.minusDays(30))));
+
+    for (String url :
+        new String[] {
+          "/api/statistics/commons/carrillo/meals/averages",
+          "/api/statistics/commons/carrillo/meals/averages?period=ALL"
+        }) {
+      MvcResult response = mockMvc.perform(get(url)).andExpect(status().isOk()).andReturn();
+      List<MealAverage> result =
+          objectMapper.readValue(
+              response.getResponse().getContentAsString(),
+              new TypeReference<List<MealAverage>>() {});
+      assertEquals(1, result.size());
+      assertEquals(3.0, result.get(0).getAverageStars());
+      assertEquals(Long.valueOf(2L), result.get(0).getReviewCount());
+    }
   }
 
   @WithMockUser(roles = {"USER"})
