@@ -2,6 +2,7 @@ import { Button, Container, Nav, Navbar, NavDropdown } from "react-bootstrap";
 import { Link } from "react-router";
 import { hasRole } from "main/utils/currentUser";
 import AppNavbarLocalhost from "main/components/Nav/AppNavbarLocalhost";
+import MenuItemSearch from "main/components/Nav/MenuItemSearch";
 
 export default function AppNavbar({
   currentUser,
@@ -145,9 +146,10 @@ export default function AppNavbar({
               )}
             </Nav>
 
-            <Nav className="ml-auto">
+            <Nav className="ml-auto align-items-center">
               {currentUser && currentUser.loggedIn ? (
                 <>
+                  <MenuItemSearch />
                   <Navbar.Text className="me-3" as={Link} to="/profile">
                     Welcome, {currentUser.root.user.email}
                   </Navbar.Text>

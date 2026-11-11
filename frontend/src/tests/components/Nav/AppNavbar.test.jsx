@@ -23,6 +23,7 @@ describe("AppNavbar tests", () => {
     );
 
     await screen.findByText("Welcome, pconrad.cis@gmail.com");
+    expect(screen.getByTestId("MenuItemSearch-input")).toBeInTheDocument();
     expect(screen.queryByText("Moderate")).not.toBeInTheDocument();
     const statisticsMenu = screen.getByTestId("appnavbar-statistics-dropdown");
     expect(statisticsMenu).toBeInTheDocument();
@@ -66,6 +67,9 @@ describe("AppNavbar tests", () => {
     await screen.findByText("UCSB Dining");
     expect(
       screen.queryByTestId("appnavbar-statistics-dropdown"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("MenuItemSearch-input"),
     ).not.toBeInTheDocument();
   });
 

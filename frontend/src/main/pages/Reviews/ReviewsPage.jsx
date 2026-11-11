@@ -1,7 +1,9 @@
 import { useBackend } from "main/utils/useBackend";
 import BasicLayout from "main/layouts/BasicLayout/BasicLayout";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
+import { Button } from "react-bootstrap";
 import ReviewsTable from "main/components/Reviews/ReviewsTable";
+import { diningCommonsName } from "main/utils/diningCommonsNames";
 
 export default function ReviewsPage() {
   const { itemid } = useParams();
@@ -17,10 +19,39 @@ export default function ReviewsPage() {
     [],
   );
 
+  const { data: menuItem } = useBackend(
+    // Stryker disable next-line all : don't test internal caching of React Query
+    [`/api/diningcommons/menuitem?id=${itemid}`],
+    // Stryker disable next-line all : the default method is get
+    { method: "GET", url: `/api/diningcommons/menuitem?id=${itemid}` },
+    null,
+  );
+
   return (
     <BasicLayout>
       <div className="pt-2">
-        <h1>Reviews for Menu Item {itemid}</h1>
+        {menuItem ? (
+          <>
+            <h1 data-testid="ReviewsPage-title">Reviews for {menuItem.name}</h1>
+            <p data-testid="ReviewsPage-details" className="text-muted">
+              {diningCommonsName(menuItem.diningCommonsCode)} ·{" "}
+              {menuItem.mealCode} · {menuItem.station}
+            </p>
+          </>
+        ) : (
+          <h1 data-testid="ReviewsPage-title">
+            Reviews for Menu Item {itemid}
+          </h1>
+        )}
+        <Button
+          as={Link}
+          to={`/reviews/post/${itemid}`}
+          variant="warning"
+          className="mb-3"
+          data-testid="ReviewsPage-review-button"
+        >
+          Review This Item
+        </Button>
         <ReviewsTable reviews={reviews} />
       </div>
     </BasicLayout>
