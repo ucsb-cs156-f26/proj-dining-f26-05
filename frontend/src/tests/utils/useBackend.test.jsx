@@ -129,6 +129,8 @@ describe("utils/useBackend tests", () => {
 
       axiosMock = new AxiosMockAdapter(axios);
 
+      queryClient.setQueryData(["/api/recommendationrequest/all"], []);
+
       axiosMock.onPost("/api/recommendationrequest/post").reply(202, {
         id: 17,
         professorName: "test",
@@ -188,7 +190,112 @@ describe("utils/useBackend tests", () => {
       expect(mockToast).toHaveBeenCalledWith(
         "New recommendation Created - id: 17 requester name: testname1",
       );
+      expect(
+        queryClient.getQueryState(["/api/recommendationrequest/all"])
+          .isInvalidated,
+      ).toBe(true);
     });
+
+    test("useBackendMutation invalidates every key in an array of query keys", async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: {
+            retry: false,
+          },
+        },
+      });
+      const wrapper = ({ children }) => (
+        <QueryClientProvider client={queryClient}>
+          {children}
+        </QueryClientProvider>
+      );
+
+      axiosMock = new AxiosMockAdapter(axios);
+
+      queryClient.setQueryData(["/api/reviews/userReviews"], []);
+      queryClient.setQueryData(["/api/reviews/needsmoderation"], []);
+      queryClient.setQueryData(["/api/some/otherKey"], []);
+
+      axiosMock.onDelete("/api/reviews/reviewer").reply(200, {});
+
+      const objectToAxiosParams = (id) => ({
+        url: "/api/reviews/reviewer",
+        method: "DELETE",
+        params: { id },
+      });
+
+      const onSuccess = vi.fn();
+
+      const { result } = renderHook(
+        () =>
+          useBackendMutation(objectToAxiosParams, { onSuccess }, [
+            "/api/reviews/userReviews",
+            "/api/reviews/needsmoderation",
+          ]),
+        { wrapper },
+      );
+
+      act(() => result.current.mutate(1));
+
+      await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+      expect(
+        queryClient.getQueryState(["/api/reviews/userReviews"]).isInvalidated,
+      ).toBe(true);
+      expect(
+        queryClient.getQueryState(["/api/reviews/needsmoderation"])
+          .isInvalidated,
+      ).toBe(true);
+      expect(
+        queryClient.getQueryState(["/api/some/otherKey"]).isInvalidated,
+      ).toBe(false);
+    });
+
+    test("useBackendMutation silently ignores non-array keys", async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: {
+            retry: false,
+          },
+        },
+      });
+      const wrapper = ({ children }) => (
+        <QueryClientProvider client={queryClient}>
+          {children}
+        </QueryClientProvider>
+      );
+
+      axiosMock = new AxiosMockAdapter(axios);
+
+      queryClient.setQueryData(["/api/reviews/userReviews"], []);
+
+      axiosMock.onDelete("/api/reviews/reviewer").reply(200, {});
+
+      const objectToAxiosParams = (id) => ({
+        url: "/api/reviews/reviewer",
+        method: "DELETE",
+        params: { id },
+      });
+
+      const onSuccess = vi.fn();
+
+      const { result } = renderHook(
+        () =>
+          useBackendMutation(
+            objectToAxiosParams,
+            { onSuccess },
+            "/api/reviews/userReviews",
+          ),
+        { wrapper },
+      );
+
+      act(() => result.current.mutate(1));
+
+      await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+      expect(
+        queryClient.getQueryState(["/api/reviews/userReviews"]).isInvalidated,
+      ).toBe(false);
+    });
+
     test("useBackendMutation handles error correctly", async () => {
       // See: https://react-query.tanstack.com/guides/testing#turn-off-retries
       const queryClient = new QueryClient({
