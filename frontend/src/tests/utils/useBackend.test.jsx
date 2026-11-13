@@ -69,6 +69,44 @@ describe("utils/useBackend tests", () => {
       expect(result.current.status).toBe(200);
     });
 
+    test("useBackend has no data or status before the fetch completes when no initialData is given", async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: {
+            retry: false,
+          },
+        },
+      });
+      const wrapper = ({ children }) => (
+        <QueryClientProvider client={queryClient}>
+          {children}
+        </QueryClientProvider>
+      );
+
+      axiosMock = new AxiosMockAdapter(axios);
+      const users = [{ id: 1, email: "cgaucho@ucsb.edu" }];
+
+      axiosMock.onGet("/api/admin/users").reply(200, users);
+
+      const { result } = renderHook(
+        () =>
+          useBackend(["/api/admin/users"], {
+            method: "GET",
+            url: "/api/admin/users",
+          }),
+        { wrapper },
+      );
+
+      // Without initialData, nothing is in the cache until the fetch finishes
+      expect(result.current.data).toBeUndefined();
+      expect(result.current.status).toBeUndefined();
+
+      await waitFor(() => {
+        expect(result.current.data).toEqual(users);
+      });
+      expect(result.current.status).toBe(200);
+    });
+
     test("useBackend handles 404 error correctly", async () => {
       // See: https://react-query.tanstack.com/guides/testing#turn-off-retries
       const queryClient = new QueryClient({
