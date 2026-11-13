@@ -21,6 +21,14 @@ vi.mock("react-toastify", async () => {
 });
 
 const axiosMock = new AxiosMockAdapter(axios);
+
+const menuItem = {
+  id: 7,
+  name: "Chicken Tenders",
+  diningCommonsCode: "de-la-guerra",
+  mealCode: "lunch",
+  station: "Grill",
+};
 describe("ReviewsPage tests", () => {
   const testId = "Reviewstable";
 
@@ -31,6 +39,7 @@ describe("ReviewsPage tests", () => {
   };
 
   beforeEach(() => {
+    mockToast.mockClear();
     axiosMock.reset();
     axiosMock.resetHistory();
     axiosMock
@@ -105,6 +114,9 @@ describe("ReviewsPage tests", () => {
     setupUserOnly();
 
     axiosMock.onGet(`/api/reviews/approved/forItem/${itemId}`).networkError();
+    axiosMock
+      .onGet(`/api/diningcommons/menuitem?id=${itemId}`)
+      .reply(200, menuItem);
 
     renderWithRoute(itemId);
 
@@ -114,5 +126,33 @@ describe("ReviewsPage tests", () => {
       expect(toastMessage).toContain("GET");
       expect(toastMessage).toContain(`/api/reviews/approved/forItem/${itemId}`);
     });
+  });
+
+  test("shows the item name, dining commons, and a link to review it", async () => {
+    const itemid = "7";
+    setupUserOnly();
+    axiosMock
+      .onGet(`/api/reviews/approved/forItem/${itemid}`)
+      .reply(200, ReviewFixtures.threeReviews);
+    axiosMock
+      .onGet(`/api/diningcommons/menuitem?id=${itemid}`)
+      .reply(200, menuItem);
+
+    renderWithRoute(itemid);
+
+    expect(screen.getByTestId("ReviewsPage-title")).toHaveTextContent(
+      "Reviews for Menu Item 7",
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("ReviewsPage-title")).toHaveTextContent(
+        "Reviews for Chicken Tenders",
+      ),
+    );
+    expect(screen.getByTestId("ReviewsPage-details")).toHaveTextContent(
+      "De La Guerra · lunch · Grill",
+    );
+    const button = screen.getByTestId("ReviewsPage-review-button");
+    expect(button).toHaveTextContent("Review This Item");
+    expect(button).toHaveAttribute("href", "/reviews/post/7");
   });
 });
