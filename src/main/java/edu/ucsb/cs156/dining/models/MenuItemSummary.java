@@ -7,22 +7,23 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Lightweight view of a MenuItem returned by the menu item search endpoint. It deliberately omits
- * reviews so that search results are small and never expose unmoderated reviews.
+ * Lightweight view of a MenuItem returned by the menu item search and get-by-id endpoints. It
+ * deliberately omits reviews so that responses are small and never expose unmoderated reviews or
+ * reviewers' user records.
  */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class MenuItemSearchResult {
+public class MenuItemSummary {
   private long id;
   private String name;
   private String diningCommonsCode;
   private String mealCode;
   private String station;
 
-  public static MenuItemSearchResult from(MenuItem item) {
-    return MenuItemSearchResult.builder()
+  public static MenuItemSummary from(MenuItem item) {
+    return MenuItemSummary.builder()
         .id(item.getId())
         .name(item.getName())
         .diningCommonsCode(item.getDiningCommonsCode())

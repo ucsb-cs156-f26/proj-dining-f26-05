@@ -115,6 +115,31 @@ public class UCSBDiningMenuItemsControllerTests extends ControllerTestCase {
   }
 
   @Test
+  public void get_menu_item_by_id_does_not_expose_reviews() throws Exception {
+    // arrange: an item with an unmoderated review that includes moderator comments
+    Review pendingReview =
+        Review.builder()
+            .id(10L)
+            .itemsStars(2L)
+            .reviewerComments("Not great")
+            .status(ModerationStatus.AWAITING_REVIEW)
+            .moderatorComments("internal note")
+            .build();
+    MenuItem menuItem =
+        new MenuItem(
+            1L, "portola", "dinner", "Spicy Tuna Roll", "International", List.of(pendingReview));
+    when(menuItemRepository.findById(1L)).thenReturn(Optional.of(menuItem));
+
+    // act and assert
+    mockMvc
+        .perform(get("/api/diningcommons/menuitem?id=1").contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(1))
+        .andExpect(jsonPath("$.name").value("Spicy Tuna Roll"))
+        .andExpect(jsonPath("$.reviews").doesNotExist());
+  }
+
+  @Test
   public void get_menu_item_by_id_not_found() throws Exception {
     // arrange
     when(menuItemRepository.findById(1L)).thenReturn(Optional.empty());
