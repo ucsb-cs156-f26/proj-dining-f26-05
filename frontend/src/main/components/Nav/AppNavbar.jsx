@@ -21,7 +21,7 @@ export default function AppNavbar({
       <Navbar
         expand="xl"
         variant="dark"
-        bg="dark"
+        className="app-navbar"
         sticky="top"
         data-testid="AppNavbar"
       >

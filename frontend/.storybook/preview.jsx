@@ -1,6 +1,7 @@
 import "../src/index.css";
 import "bootstrap/dist/css/bootstrap.css";
 import 'react-toastify/dist/ReactToastify.css';
+import "../src/main/styles/theme.css";
 
 import { mswLoader } from 'msw-storybook-addon/csf3'
 import { setupWorker } from 'msw/browser'
