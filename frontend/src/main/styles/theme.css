@@ -1,0 +1,306 @@
+/*
+ * UCSB Dining theme
+ *
+ * This is the one place to change the app's look. It is loaded after
+ * bootstrap.css (in App.jsx and .storybook/preview.jsx), so anything here
+ * overrides Bootstrap's defaults.
+ *
+ * To restyle the app, start with the color tokens in :root below.
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap");
+
+:root {
+  /* ---- Theme tokens: change these first ---- */
+  --dining-navy: #003660; /* UCSB Navy */
+  --dining-navy-dark: #002644;
+  --dining-gold: #febc11; /* UCSB Gold */
+  --dining-gold-dark: #e0a400;
+  --dining-sea: #047c91; /* UCSB Sea Green */
+  --dining-sea-dark: #03606f;
+  --dining-coral: #ef5645; /* UCSB Coral */
+  --dining-coral-dark: #d43f2f;
+  --dining-sand: #f7f3ec; /* page background */
+  --dining-clay: #ece6da; /* footer, subtle surfaces */
+  --dining-surface: #ffffff; /* tables, cards, modals */
+  --dining-text: #1f2a37;
+  --dining-muted: #5b6573;
+
+  --dining-radius: 0.75rem;
+  --dining-shadow: 0 2px 10px rgba(0, 54, 96, 0.08);
+  --dining-font: "Nunito", system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+
+  /* ---- Bootstrap variables mapped onto the tokens ---- */
+  --bs-body-font-family: var(--dining-font);
+  --bs-body-bg: var(--dining-sand);
+  --bs-body-color: var(--dining-text);
+  --bs-secondary-color: var(--dining-muted);
+  --bs-primary: var(--dining-sea);
+  --bs-primary-rgb: 4, 124, 145;
+  --bs-warning: var(--dining-gold);
+  --bs-warning-rgb: 254, 188, 17;
+  --bs-danger: var(--dining-coral);
+  --bs-danger-rgb: 239, 86, 69;
+  --bs-link-color: var(--dining-sea);
+  --bs-link-color-rgb: 4, 124, 145;
+  --bs-link-hover-color: var(--dining-navy);
+  --bs-link-hover-color-rgb: 0, 54, 96;
+  --bs-border-radius: var(--dining-radius);
+  --bs-border-color: #ddd5c7;
+  --bs-focus-ring-color: rgba(4, 124, 145, 0.3);
+}
+
+body {
+  font-family: var(--dining-font);
+  background-color: var(--dining-sand);
+  color: var(--dining-text);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--dining-navy);
+  font-weight: 800;
+}
+
+h1 {
+  margin-bottom: 1rem;
+}
+
+/* ---- Navbar ---- */
+.app-navbar {
+  background-color: var(--dining-navy);
+  border-bottom: 4px solid var(--dining-gold);
+  box-shadow: var(--dining-shadow);
+}
+
+.app-navbar .navbar-brand {
+  color: var(--dining-gold);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.app-navbar .navbar-brand:hover,
+.app-navbar .navbar-brand:focus {
+  color: #ffd45c;
+}
+
+.app-navbar .nav-link,
+.app-navbar .navbar-text {
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.app-navbar .nav-link:hover,
+.app-navbar .nav-link:focus,
+.app-navbar .nav-link.show,
+.app-navbar .navbar-text:hover {
+  color: var(--dining-gold);
+}
+
+.app-navbar .dropdown-menu {
+  border: none;
+  border-radius: var(--dining-radius);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.app-navbar .dropdown-item:active {
+  background-color: var(--dining-sea);
+}
+
+/* ---- Buttons: pill-shaped, theme colors ---- */
+.btn {
+  border-radius: 50rem;
+  font-weight: 700;
+  padding-left: 1.1rem;
+  padding-right: 1.1rem;
+}
+
+.btn-sm {
+  padding-left: 0.8rem;
+  padding-right: 0.8rem;
+}
+
+.btn-primary {
+  --bs-btn-bg: var(--dining-sea);
+  --bs-btn-border-color: var(--dining-sea);
+  --bs-btn-hover-bg: var(--dining-sea-dark);
+  --bs-btn-hover-border-color: var(--dining-sea-dark);
+  --bs-btn-active-bg: var(--dining-sea-dark);
+  --bs-btn-active-border-color: var(--dining-sea-dark);
+  --bs-btn-disabled-bg: var(--dining-sea);
+  --bs-btn-disabled-border-color: var(--dining-sea);
+  --bs-btn-focus-shadow-rgb: 4, 124, 145;
+}
+
+.btn-warning {
+  --bs-btn-color: var(--dining-navy);
+  --bs-btn-bg: var(--dining-gold);
+  --bs-btn-border-color: var(--dining-gold);
+  --bs-btn-hover-color: var(--dining-navy);
+  --bs-btn-hover-bg: var(--dining-gold-dark);
+  --bs-btn-hover-border-color: var(--dining-gold-dark);
+  --bs-btn-active-color: var(--dining-navy);
+  --bs-btn-active-bg: var(--dining-gold-dark);
+  --bs-btn-active-border-color: var(--dining-gold-dark);
+  --bs-btn-disabled-color: var(--dining-navy);
+  --bs-btn-disabled-bg: var(--dining-gold);
+  --bs-btn-disabled-border-color: var(--dining-gold);
+  --bs-btn-focus-shadow-rgb: 254, 188, 17;
+}
+
+.btn-danger {
+  --bs-btn-bg: var(--dining-coral);
+  --bs-btn-border-color: var(--dining-coral);
+  --bs-btn-hover-bg: var(--dining-coral-dark);
+  --bs-btn-hover-border-color: var(--dining-coral-dark);
+  --bs-btn-active-bg: var(--dining-coral-dark);
+  --bs-btn-active-border-color: var(--dining-coral-dark);
+  --bs-btn-disabled-bg: var(--dining-coral);
+  --bs-btn-disabled-border-color: var(--dining-coral);
+  --bs-btn-focus-shadow-rgb: 239, 86, 69;
+}
+
+/* The navbar's Log In / Log Out button: gold on navy */
+.app-navbar .btn-primary {
+  --bs-btn-color: var(--dining-navy);
+  --bs-btn-bg: var(--dining-gold);
+  --bs-btn-border-color: var(--dining-gold);
+  --bs-btn-hover-color: var(--dining-navy);
+  --bs-btn-hover-bg: var(--dining-gold-dark);
+  --bs-btn-hover-border-color: var(--dining-gold-dark);
+  --bs-btn-active-color: var(--dining-navy);
+  --bs-btn-active-bg: var(--dining-gold-dark);
+  --bs-btn-active-border-color: var(--dining-gold-dark);
+}
+
+/* ---- Tables: white rounded cards with a navy header ---- */
+.table {
+  --bs-table-bg: var(--dining-surface);
+  --bs-table-striped-bg: #f6f9fa;
+  --bs-table-hover-bg: #e8f3f5;
+  background-color: var(--dining-surface);
+  border-radius: var(--dining-radius);
+  box-shadow: var(--dining-shadow);
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/* Round the corner cells (not overflow: hidden, which would clip wide tables) */
+.table > :first-child > tr:first-child > :first-child {
+  border-top-left-radius: var(--dining-radius);
+}
+.table > :first-child > tr:first-child > :last-child {
+  border-top-right-radius: var(--dining-radius);
+}
+.table > :last-child > tr:last-child > :first-child {
+  border-bottom-left-radius: var(--dining-radius);
+}
+.table > :last-child > tr:last-child > :last-child {
+  border-bottom-right-radius: var(--dining-radius);
+}
+
+.table .btn {
+  white-space: nowrap;
+}
+
+/* On small screens, let wide tables scroll sideways instead of overflowing the page */
+@media (max-width: 767.98px) {
+  .table {
+    display: block;
+    overflow-x: auto;
+  }
+}
+
+.table > :not(caption) > * > * {
+  padding: 0.7rem 0.85rem;
+  vertical-align: middle;
+}
+
+.table.table-bordered {
+  border: 1px solid var(--bs-border-color);
+}
+
+/* border-collapse: separate ignores <tr> borders, so draw grid lines on cells:
+   one bottom + one left border per cell, skipping edges the table border covers */
+.table.table-bordered > :not(caption) > * > * {
+  border-width: 0 0 var(--bs-border-width) var(--bs-border-width);
+}
+.table.table-bordered > :not(caption) > * > :first-child {
+  border-left-width: 0;
+}
+.table.table-bordered > :last-child > tr:last-child > * {
+  border-bottom-width: 0;
+}
+
+.table thead th {
+  --bs-table-bg: var(--dining-navy);
+  background-color: var(--dining-navy);
+  color: #ffffff;
+  font-weight: 700;
+  border-color: var(--dining-navy-dark);
+}
+
+/* ---- Forms ---- */
+.form-control,
+.form-select {
+  border-radius: var(--dining-radius);
+}
+
+/* Plain inputs not wrapped in Bootstrap classes (e.g. the home page date picker) */
+input[type="date"]:not(.form-control) {
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--dining-radius);
+  background-color: var(--dining-surface);
+  color: var(--dining-text);
+  padding: 0.4rem 0.75rem;
+}
+
+input[type="date"]:not(.form-control):focus {
+  outline: none;
+  border-color: var(--dining-sea);
+  box-shadow: 0 0 0 0.2rem rgba(4, 124, 145, 0.2);
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--dining-sea);
+  box-shadow: 0 0 0 0.2rem rgba(4, 124, 145, 0.2);
+}
+
+/* Navbar menu item search: rounded to match the buttons */
+.app-navbar .rbt .form-control {
+  border-radius: 50rem;
+  border: none;
+  min-width: 14rem;
+}
+
+/* ---- Cards, modals, badges ---- */
+.card,
+.modal-content {
+  border: none;
+  border-radius: var(--dining-radius);
+  box-shadow: var(--dining-shadow);
+}
+
+.badge {
+  border-radius: 50rem;
+}
+
+/* ---- Footer ---- */
+.app-footer {
+  background-color: var(--dining-clay);
+  border-top: 4px solid var(--dining-navy);
+  color: var(--dining-muted);
+}
+
+.app-footer a {
+  color: var(--dining-navy);
+  font-weight: 700;
+}

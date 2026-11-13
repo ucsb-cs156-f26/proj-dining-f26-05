@@ -23,6 +23,7 @@ describe("AppNavbar tests", () => {
     );
 
     await screen.findByText("Welcome, pconrad.cis@gmail.com");
+    expect(screen.getByTestId("AppNavbar")).toHaveClass("app-navbar");
     expect(screen.queryByText("Moderate")).not.toBeInTheDocument();
     const statisticsMenu = screen.getByTestId("appnavbar-statistics-dropdown");
     expect(statisticsMenu).toBeInTheDocument();
