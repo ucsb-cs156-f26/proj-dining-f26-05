@@ -1,6 +1,10 @@
 package edu.ucsb.cs156.dining.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
@@ -117,5 +121,58 @@ public class UCSBDiningMenuItemsServiceTests {
     List<MenuItem> actualResult =
         ucsbDiningMenuItemsService.getOrCreateMenuItems("ortega", "lunch", returnedEntrees);
     assertEquals(new ArrayList<>(List.of(existsMi, createdMi)), actualResult);
+  }
+
+  @Test
+  public void getOrCreate_sameEntreeTwiceInResponse_createsItOnce() {
+    Entree first = Entree.builder().name(NAME).station(STATION).build();
+    Entree repeat = Entree.builder().name(NAME).station(STATION).build();
+    ArrayList<Entree> returnedEntrees = new ArrayList<>(List.of(first, repeat));
+    MenuItem createdMi =
+        MenuItem.builder()
+            .name(NAME)
+            .station(STATION)
+            .diningCommonsCode("carrillo")
+            .mealCode("lunch")
+            .build();
+    when(miRepository.findExistingEntrees("carrillo", "lunch", returnedEntrees))
+        .thenReturn(new ArrayList<>());
+    when(miRepository.save(createdMi)).thenReturn(createdMi);
+
+    List<MenuItem> actualResult =
+        ucsbDiningMenuItemsService.getOrCreateMenuItems("carrillo", "lunch", returnedEntrees);
+
+    assertEquals(List.of(createdMi), actualResult);
+    verify(miRepository, times(1)).save(any(MenuItem.class));
+  }
+
+  @Test
+  public void getOrCreate_duplicateRowsAlreadyInDatabase_doesNotThrow() {
+    Entree entree = Entree.builder().name(NAME).station(STATION).build();
+    ArrayList<Entree> returnedEntrees = new ArrayList<>(List.of(entree));
+    MenuItem dup1 =
+        MenuItem.builder()
+            .id(2357L)
+            .name(NAME)
+            .station(STATION)
+            .diningCommonsCode("carrillo")
+            .mealCode("lunch")
+            .build();
+    MenuItem dup2 =
+        MenuItem.builder()
+            .id(2361L)
+            .name(NAME)
+            .station(STATION)
+            .diningCommonsCode("carrillo")
+            .mealCode("lunch")
+            .build();
+    when(miRepository.findExistingEntrees("carrillo", "lunch", returnedEntrees))
+        .thenReturn(new ArrayList<>(List.of(dup1, dup2)));
+
+    List<MenuItem> actualResult =
+        ucsbDiningMenuItemsService.getOrCreateMenuItems("carrillo", "lunch", returnedEntrees);
+
+    assertEquals(List.of(dup1, dup2), actualResult);
+    verify(miRepository, never()).save(any(MenuItem.class));
   }
 }

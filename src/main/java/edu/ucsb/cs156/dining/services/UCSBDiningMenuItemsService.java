@@ -114,10 +114,14 @@ public class UCSBDiningMenuItemsService {
         existingItems.stream()
             .collect(
                 Collectors.toMap(
-                    (item) -> item.getStation() + ":" + item.getName(), Function.identity()));
+                    (item) -> item.getStation() + ":" + item.getName(),
+                    Function.identity(),
+                    // tolerate duplicate rows already in the database rather than throwing
+                    (first, duplicate) -> first));
 
     for (Entree selected : entrees) {
-      if (existingItemsMap.containsKey(selected.getStation() + ":" + selected.getName())) {
+      String key = selected.getStation() + ":" + selected.getName();
+      if (existingItemsMap.containsKey(key)) {
         continue;
       } else {
         MenuItem created =
@@ -129,6 +133,8 @@ public class UCSBDiningMenuItemsService {
                 .build();
         menuItemRepository.save(created);
         existingItems.add(created);
+        // the API sometimes lists the same entree twice in one meal; only create it once
+        existingItemsMap.put(key, created);
       }
     }
 
