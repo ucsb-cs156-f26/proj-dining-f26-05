@@ -83,7 +83,7 @@ public class UsersController extends ApiController {
 
   /** Get all users whose proposed alias is awaiting moderation. */
   @Operation(summary = "Get all aliases needing moderation")
-  @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_MODERATOR')")
+  @PreAuthorize("hasRole('ROLE_MODERATOR')")
   @GetMapping("/admin/users/needsmoderation")
   public ResponseEntity<String> getAliasesNeedingModeration() throws JsonProcessingException {
 
@@ -126,7 +126,7 @@ public class UsersController extends ApiController {
    * @param approved the new moderation status
    * @return the updated user
    */
-  @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_MODERATOR')")
+  @PreAuthorize("hasRole('ROLE_MODERATOR')")
   @PutMapping("/currentUser/updateAliasModeration")
   public User updateAliasModeration(@RequestParam long id, @RequestParam Boolean approved) {
 
