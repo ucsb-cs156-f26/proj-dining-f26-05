@@ -20,7 +20,8 @@ The other line you can copy/paste as is, except for changing `dining` to whateve
 
 ### Identify this app to any UCSB API proxy in front of it (e.g. `dining-caching-proxy`)
 
-**Run this once per app**, so that `APP_NAME` and `APP_HOSTNAME` are available inside the container.
+**Run this once per app**, after the app has been created and deployed (see below), so that `APP_NAME` and `APP_HOSTNAME`
+are available inside the container.
 The app uses these to build an `X-Requesting-App` header (e.g. `dining-qa.dokku-00.cs.ucsb.edu`) that
 it sends on every request to `app.ucsb.api.host`. If that host is a caching proxy sitting in front of
 the real UCSB API, this lets it track traffic by app name instead of IP address — IP addresses aren't
@@ -28,16 +29,19 @@ reliable for this when both apps live on the same Dokku host, since they then sh
 bridge network and the caller's IP is just an internal address that means nothing outside the host.
 Skipping this step doesn't break anything; the app still works, it just won't self-identify.
 
-Substitute your own app name for `dining` below. Note this uses `dokku docker-options:add` rather than
-`dokku config:set` on purpose: it lets dokku fill in the app's own name and host automatically, rather
-than requiring you to type the app name a second time as a literal value — a command like
-`dokku config:set dining-qa APP_NAME=dining-qa` has two places the app name has to match, and a
-copy/paste slip (e.g. running it against `dining-qa` but leaving `dining` in the value) fails silently.
+**If you followed an older version of this page** that used `dokku docker-options:add` for these two
+variables, remove those options before running the `config:set` command below. On current dokku servers the `$(...)` in them is not evaluated, so
+the container gets the literal command text as the value:
 
 ```
-dokku docker-options:add dining deploy,run '--env=APP_NAME=$(echo $DOCKER_RUN_LABEL_ARGS | sed -n "s/.*--label=com\.dokku\.app-name=\([^ ]*\).*/\1/p")'
-dokku docker-options:add dining deploy,run '--env=APP_HOSTNAME=$(hostname -f)'
-dokku ps:rebuild dining
+dokku docker-options:remove dining deploy,run '--env=APP_NAME=$(echo $DOCKER_RUN_LABEL_ARGS | sed -n "s/.*--label=com\.dokku\.app-name=\([^ ]*\).*/\1/p")'
+dokku docker-options:remove dining deploy,run '--env=APP_HOSTNAME=$(hostname -f)'
+```
+
+Substitute your own app name for `dining` everywhere it appears below and your own dokku host for `dokku-00.cs.ucsb.edu`:
+
+```
+dokku config:set dining APP_NAME=dining APP_HOSTNAME=dokku-00.cs.ucsb.edu # modify this
 ```
 
 Confirm it worked:
@@ -46,10 +50,16 @@ Confirm it worked:
 dokku enter dining web env | grep -E 'APP_NAME|APP_HOSTNAME'
 ```
 
-**Note:** the `APP_NAME` line relies on an internal, undocumented dokku implementation detail (the
-`DOCKER_RUN_LABEL_ARGS` variable and the `com.dokku.app-name` container label), not a stable public
-dokku API. If a future dokku upgrade changes that internal naming, `APP_NAME` will silently fall back
-to `app-name-unset` rather than error — that's the sign to come back and re-check this command.
+The output should show exactly your dokku host and your app name, e.g.:
+
+```
+APP_HOSTNAME=dokku-00.cs.ucsb.edu
+APP_NAME=dining
+```
+
+If either value is wrong (e.g. a copy/paste slip left `dining` in the value for `dining-qa`), run the
+`config:set` command again with the right values. If neither variable is set, the app falls back to
+`app-name-unset` and `app-hostname-unset`.
 
 ### Create `dining`
 
