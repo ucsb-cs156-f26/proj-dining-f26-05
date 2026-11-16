@@ -21,6 +21,46 @@ Later in the course, you'll only need to do the last of these, three, since the 
    - <https://ucsb-cs156.github.io/topics/oauth/google_oauth_consent_screen.html>
 3. Once for each application: Create a set of OAuth credentials (`GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` values): 
    - <https://ucsb-cs156.github.io/topics/oauth/oauth_google_setup.html>
+4. Once for each project: Set up Gmail access, so the app can email moderators (see the next section).
+
+## Setting up Gmail access (for moderator email notifications)
+
+When a user submits a review that needs moderation, the app emails the moderators. The email is sent
+through the Gmail API from the account of the user who submitted the review, so the Google Cloud project
+that owns your OAuth client needs three extra settings.
+
+In the [Google Cloud Console](https://console.cloud.google.com/), first make sure the project selector
+at the top shows **the same project your OAuth client (`GOOGLE_CLIENT_ID`) belongs to**. Then:
+
+1. **Set the audience to Internal.** Go to **Google Auth Platform → Audience** and set the user type to
+   **Internal**.
+   - This is only possible if the project belongs to the `ucsb.edu` organization. A project created
+     under a personal Gmail account can't be set to Internal; create a new project while logged in
+     with your `@ucsb.edu` account instead.
+   - Once it's Internal, only `@ucsb.edu` accounts can log in to the app.
+2. **Add the Gmail scope.** Go to **Google Auth Platform → Data Access**, click **Add or remove scopes**,
+   and add `https://www.googleapis.com/auth/gmail.send` (shown as "Send email on your behalf"). Save.
+3. **Turn on the Gmail API.** Go to **APIs & Services → Library**, search for **Gmail API**, and click
+   **Enable**. If the button says **Manage**, it's already on.
+
+After this, log out of the app and log back in. The Google login screen should now ask for permission to
+"Send email on your behalf"; accept it. Users who logged in before these changes have to log out and back
+in once before emails will send from their account.
+
+If emails aren't arriving, check the backend log (`dokku logs <app> -t` on Dokku) for a line from
+`ModeratorNotificationService`:
+
+* `Failed to email moderators about review N` followed by `403 Forbidden ... Gmail API has not been used
+  in project ... or it is disabled`: step 3 hasn't been done in the right project. The error message
+  includes the project number and a link to enable it.
+* `Not emailing moderators about review N: no usable Google access token for the current user`: the
+  user logged in before the Gmail scope was added (or declined it). Log out and back in, and accept the
+  "Send email on your behalf" permission.
+* `Not emailing moderators about review N: there are no moderators`: add a moderator on the app's
+  admin page.
+
+Note: emails are only sent for reviews that have comments (those need moderation). Reviews without
+comments are approved automatically and don't send an email.
 
 Once you have created the OAuth Credentials, you'll need to
 configure your application with these values.
