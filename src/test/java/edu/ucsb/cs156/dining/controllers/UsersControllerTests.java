@@ -2,6 +2,7 @@ package edu.ucsb.cs156.dining.controllers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -231,7 +232,7 @@ public class UsersControllerTests extends ControllerTestCase {
   }
 
   @Test
-  @WithMockUser(roles = {"ADMIN", "MODERATOR"})
+  @WithMockUser(roles = {"ADMIN"})
   public void admin_approves_alias() throws Exception {
     // arrange
     User userOrig =
@@ -275,7 +276,7 @@ public class UsersControllerTests extends ControllerTestCase {
   }
 
   @Test
-  @WithMockUser(roles = {"ADMIN", "MODERATOR"})
+  @WithMockUser(roles = {"ADMIN"})
   public void admin_does_not_approve_alias() throws Exception {
     // arrange
     User userOrig =
@@ -353,7 +354,7 @@ public class UsersControllerTests extends ControllerTestCase {
   }
 
   @Test
-  @WithMockUser(roles = {"ADMIN", "MODERATOR"})
+  @WithMockUser(roles = {"ADMIN"})
   public void admin_can_get_aliases_needing_moderation() throws Exception {
 
     // arrange
@@ -420,5 +421,58 @@ public class UsersControllerTests extends ControllerTestCase {
         .findByStatusAndProposedAliasNotNull(ModerationStatus.AWAITING_REVIEW);
 
     assertEquals(expectedJson, response.getResponse().getContentAsString());
+  }
+
+  @Test
+  @WithMockUser(roles = {"MODERATOR"})
+  public void moderator_can_get_aliases_needing_moderation() throws Exception {
+    when(userRepository.findByStatusAndProposedAliasNotNull(ModerationStatus.AWAITING_REVIEW))
+        .thenReturn(List.of());
+
+    mockMvc.perform(get("/api/admin/users/needsmoderation")).andExpect(status().isOk());
+
+    verify(userRepository, times(1))
+        .findByStatusAndProposedAliasNotNull(ModerationStatus.AWAITING_REVIEW);
+  }
+
+  @Test
+  @WithMockUser(roles = {"MODERATOR"})
+  public void moderator_approves_alias() throws Exception {
+    User userOrig =
+        User.builder()
+            .id(7L)
+            .email("user@example.org")
+            .alias("Chip")
+            .proposedAlias("Chop")
+            .status(ModerationStatus.AWAITING_REVIEW)
+            .build();
+
+    when(userRepository.findById(7L)).thenReturn(Optional.of(userOrig));
+
+    mockMvc
+        .perform(
+            put("/api/currentUser/updateAliasModeration")
+                .param("id", "7")
+                .param("approved", "true")
+                .with(csrf()))
+        .andExpect(status().isOk());
+
+    verify(userRepository, times(1)).findById(7L);
+    verify(userRepository, times(1)).save(any(User.class));
+  }
+
+  @Test
+  @WithMockUser(roles = {"USER"})
+  public void regular_user_cannot_put_alias_moderation() throws Exception {
+    mockMvc
+        .perform(
+            put("/api/currentUser/updateAliasModeration")
+                .param("id", "7")
+                .param("approved", "true")
+                .with(csrf()))
+        .andExpect(status().isForbidden());
+
+    verify(userRepository, times(0)).findById(any());
+    verify(userRepository, times(0)).save(any());
   }
 }

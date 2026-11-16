@@ -1347,6 +1347,80 @@ public class ReviewControllerTests extends ControllerTestCase {
     verify(reviewRepository, times(1)).findById(5L);
   }
 
+  @WithMockUser(roles = {"ADMIN"})
+  @Test
+  public void getReviewById_admin_without_other_roles_can_view_via_role_hierarchy()
+      throws Exception {
+    MenuItem item = MenuItem.builder().id(1L).build();
+
+    Review review =
+        Review.builder().id(5L).reviewer(User.builder().id(777L).build()).item(item).build();
+
+    when(reviewRepository.findById(5L)).thenReturn(Optional.of(review));
+
+    mockMvc.perform(get("/api/reviews/5").with(csrf())).andExpect(status().isOk());
+
+    verify(reviewRepository, times(1)).findById(5L);
+  }
+
+  @WithMockUser(roles = {"USER"})
+  @Test
+  public void regular_user_cannot_moderate_a_review() throws Exception {
+    mockMvc
+        .perform(
+            put("/api/reviews/moderate")
+                .param("id", "1")
+                .param("status", "APPROVED")
+                .param("moderatorComments", "acceptable")
+                .with(csrf()))
+        .andExpect(status().isForbidden());
+
+    verify(reviewRepository, times(0)).findById(any());
+    verify(reviewRepository, times(0)).save(any());
+  }
+
+  @WithMockUser(roles = {"USER"})
+  @Test
+  public void regular_user_cannot_get_needs_moderation() throws Exception {
+    mockMvc
+        .perform(get("/api/reviews/needsmoderation").with(csrf()))
+        .andExpect(status().isForbidden());
+
+    verify(reviewRepository, times(0)).findByStatus(any());
+  }
+
+  @WithMockUser(roles = {"MODERATOR"})
+  @Test
+  public void moderator_cannot_delete_another_users_review() throws Exception {
+    MenuItem item = MenuItem.builder().id(1L).build();
+    Review review =
+        Review.builder().id(1L).reviewer(User.builder().id(2L).build()).item(item).build();
+
+    when(reviewRepository.findById(eq(1L))).thenReturn(Optional.of(review));
+
+    mockMvc
+        .perform(delete("/api/reviews/reviewer").param("id", "1").with(csrf()))
+        .andExpect(status().isForbidden());
+
+    verify(reviewRepository, times(0)).delete(any());
+  }
+
+  @WithMockUser(roles = {"ADMIN"})
+  @Test
+  public void admin_without_other_roles_can_delete_another_users_review() throws Exception {
+    MenuItem item = MenuItem.builder().id(1L).build();
+    Review review =
+        Review.builder().id(1L).reviewer(User.builder().id(2L).build()).item(item).build();
+
+    when(reviewRepository.findById(eq(1L))).thenReturn(Optional.of(review));
+
+    mockMvc
+        .perform(delete("/api/reviews/reviewer").param("id", "1").with(csrf()))
+        .andExpect(status().isOk());
+
+    verify(reviewRepository, times(1)).delete(eq(review));
+  }
+
   @WithMockUser(roles = {"USER"})
   @Test
   public void getReviewById_non_owner_user_forbidden() throws Exception {
