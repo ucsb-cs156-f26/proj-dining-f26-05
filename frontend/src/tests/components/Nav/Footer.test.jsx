@@ -58,6 +58,10 @@ describe("Footer tests", () => {
 
     render(<Footer systemInfo={systemInfo} />);
 
+    expect(screen.getByTestId("Footer")).toHaveTextContent(
+      "here. Provide Feedback",
+      { normalizeWhitespace: false },
+    );
     expect(
       screen.queryByTestId("footer-feedback-modal-link"),
     ).not.toBeInTheDocument();
