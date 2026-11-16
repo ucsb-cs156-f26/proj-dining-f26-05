@@ -114,31 +114,25 @@ public class UCSBDiningMenuItemsService {
 <span class="fc" id="L114">        existingItems.stream()</span>
 <span class="fc" id="L115">            .collect(</span>
 <span class="fc" id="L116">                Collectors.toMap(</span>
-<span class="fc" id="L117">                    (item) -&gt; item.getStation() + &quot;:&quot; + item.getName(),</span>
-<span class="fc" id="L118">                    Function.identity(),</span>
-                    // tolerate duplicate rows already in the database rather than throwing
-<span class="fc" id="L120">                    (first, duplicate) -&gt; first));</span>
+<span class="fc" id="L117">                    (item) -&gt; item.getStation() + &quot;:&quot; + item.getName(), Function.identity()));</span>
 
-<span class="fc bfc" id="L122" title="All 2 branches covered.">    for (Entree selected : entrees) {</span>
-<span class="fc" id="L123">      String key = selected.getStation() + &quot;:&quot; + selected.getName();</span>
-<span class="fc bfc" id="L124" title="All 2 branches covered.">      if (existingItemsMap.containsKey(key)) {</span>
-<span class="fc" id="L125">        continue;</span>
+<span class="fc bfc" id="L119" title="All 2 branches covered.">    for (Entree selected : entrees) {</span>
+<span class="fc bfc" id="L120" title="All 2 branches covered.">      if (existingItemsMap.containsKey(selected.getStation() + &quot;:&quot; + selected.getName())) {</span>
+<span class="fc" id="L121">        continue;</span>
       } else {
         MenuItem created =
-<span class="fc" id="L128">            MenuItem.builder()</span>
-<span class="fc" id="L129">                .diningCommonsCode(diningCommonCode)</span>
-<span class="fc" id="L130">                .mealCode(mealCode)</span>
-<span class="fc" id="L131">                .station(selected.getStation())</span>
-<span class="fc" id="L132">                .name(selected.getName())</span>
-<span class="fc" id="L133">                .build();</span>
-<span class="fc" id="L134">        menuItemRepository.save(created);</span>
-<span class="fc" id="L135">        existingItems.add(created);</span>
-        // the API sometimes lists the same entree twice in one meal; only create it once
-<span class="fc" id="L137">        existingItemsMap.put(key, created);</span>
+<span class="fc" id="L124">            MenuItem.builder()</span>
+<span class="fc" id="L125">                .diningCommonsCode(diningCommonCode)</span>
+<span class="fc" id="L126">                .mealCode(mealCode)</span>
+<span class="fc" id="L127">                .station(selected.getStation())</span>
+<span class="fc" id="L128">                .name(selected.getName())</span>
+<span class="fc" id="L129">                .build();</span>
+<span class="fc" id="L130">        menuItemRepository.save(created);</span>
+<span class="fc" id="L131">        existingItems.add(created);</span>
       }
-<span class="fc" id="L139">    }</span>
+<span class="fc" id="L133">    }</span>
 
-<span class="fc" id="L141">    return existingItems;</span>
+<span class="fc" id="L135">    return existingItems;</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

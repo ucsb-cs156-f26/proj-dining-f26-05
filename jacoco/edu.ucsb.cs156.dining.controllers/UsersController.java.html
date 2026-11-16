@@ -83,7 +83,7 @@ import org.springframework.web.server.ResponseStatusException;
 
   /** Get all users whose proposed alias is awaiting moderation. */
   @Operation(summary = &quot;Get all aliases needing moderation&quot;)
-  @PreAuthorize(&quot;hasRole('ROLE_MODERATOR')&quot;)
+  @PreAuthorize(&quot;hasAnyRole('ROLE_ADMIN','ROLE_MODERATOR')&quot;)
   @GetMapping(&quot;/admin/users/needsmoderation&quot;)
   public ResponseEntity&lt;String&gt; getAliasesNeedingModeration() throws JsonProcessingException {
 
@@ -126,7 +126,7 @@ import org.springframework.web.server.ResponseStatusException;
    * @param approved the new moderation status
    * @return the updated user
    */
-  @PreAuthorize(&quot;hasRole('ROLE_MODERATOR')&quot;)
+  @PreAuthorize(&quot;hasAnyRole('ROLE_ADMIN','ROLE_MODERATOR')&quot;)
   @PutMapping(&quot;/currentUser/updateAliasModeration&quot;)
   public User updateAliasModeration(@RequestParam long id, @RequestParam Boolean approved) {
 
