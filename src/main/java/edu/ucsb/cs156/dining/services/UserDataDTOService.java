@@ -13,7 +13,9 @@ import java.util.Set;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 /**
@@ -47,11 +49,17 @@ public class UserDataDTOService {
    * <p>A user is an admin if their email is in ADMIN_EMAILS or in the admins table, and a moderator
    * if their email is in the moderators table (the same rules as GET /api/admin/users).
    *
-   * @param pageable which page to return, its size, and its sort order
-   * @return the requested page of users
+   * <p>Pages are always sorted by user id (ascending), whatever sort the caller asks for, so a user
+   * stays in the same place on the admin users page when their roles change.
+   *
+   * @param pageable which page to return and its size (any sort in it is ignored)
+   * @return the requested page of users, sorted by id
    */
   public Page<UserDTO> getUserDataDTOs(Pageable pageable) {
-    Page<User> users = userRepository.findAll(pageable);
+    Pageable sortedById =
+        PageRequest.of(
+            pageable.getPageNumber(), pageable.getPageSize(), Sort.by(Sort.Direction.ASC, "id"));
+    Page<User> users = userRepository.findAll(sortedById);
 
     Set<String> admins = new HashSet<>(adminEmails);
     for (Admin admin : adminRepository.findAll()) {
@@ -71,6 +79,6 @@ public class UserDataDTOService {
                         admins.contains(user.getEmail()),
                         moderators.contains(user.getEmail())))
             .toList();
-    return new PageImpl<>(userDTOs, pageable, users.getTotalElements());
+    return new PageImpl<>(userDTOs, sortedById, users.getTotalElements());
   }
 }

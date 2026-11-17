@@ -77,12 +77,13 @@ public class UsersController extends ApiController {
    * users with the role "ROLE_ADMIN".
    *
    * <p>Use the standard Spring query parameters to choose the page, e.g. {@code
-   * /api/admin/users/paged?page=0&size=10&sort=id,asc}.
+   * /api/admin/users/paged?page=0&size=10}. Pages are always sorted by user id; a {@code sort}
+   * parameter is ignored.
    *
    * @param pageable page number, page size, and sort order (from the query parameters)
    * @return the requested page of users
    */
-  @Operation(summary = "Get one page of users")
+  @Operation(summary = "Get one page of users, sorted by user id")
   @PreAuthorize("hasRole('ROLE_ADMIN')")
   @GetMapping("/admin/users/paged")
   public Page<UserDTO> usersPaged(@ParameterObject Pageable pageable) {
