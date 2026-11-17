@@ -22,7 +22,10 @@ public class User {
 
   private String email;
   private String googleSub;
+
+  @Column(columnDefinition = "TEXT")
   private String pictureUrl;
+
   private String fullName;
   private String givenName;
   private String familyName;
