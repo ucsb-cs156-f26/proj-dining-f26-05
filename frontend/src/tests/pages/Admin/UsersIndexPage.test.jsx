@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "react-query";
 import { MemoryRouter } from "react-router";
 import AxiosMockAdapter from "axios-mock-adapter";
@@ -7,6 +7,27 @@ import UsersIndexPage from "main/pages/Admin/UsersIndexPage";
 import { apiCurrentUserFixtures } from "fixtures/currentUserFixtures";
 import { systemInfoFixtures } from "fixtures/systemInfoFixtures";
 import usersFixtures from "fixtures/usersFixtures";
+
+// Builds users user1..userN
+const makeUsers = (n) =>
+  Array.from({ length: n }, (_, i) => ({
+    id: i + 1,
+    email: `user${i + 1}@ucsb.edu`,
+    givenName: `First${i + 1}`,
+    familyName: `Last${i + 1}`,
+    admin: false,
+    moderator: false,
+  }));
+
+// Returns what GET /api/admin/users/paged would return for this page and size
+// (the JSON form of a Spring Page).
+const pageOf = (allUsers, page, size) => ({
+  content: allUsers.slice(page * size, (page + 1) * size),
+  totalElements: allUsers.length,
+  totalPages: Math.ceil(allUsers.length / size),
+  number: page,
+  size: size,
+});
 
 describe("UsersIndexPage tests", () => {
   const axiosMock = new AxiosMockAdapter(axios);
@@ -22,189 +43,192 @@ describe("UsersIndexPage tests", () => {
       .reply(200, systemInfoFixtures.showingNeither);
   };
 
-  test("renders without crashing", async () => {
-    setup();
-    const queryClient = new QueryClient();
-    axiosMock.onGet("/api/admin/users").reply(200, []);
+  // Makes the mocked backend page through allUsers like the real endpoint does.
+  const backendHasUsers = (allUsers) => {
+    axiosMock
+      .onGet("/api/admin/users/paged")
+      .reply((config) => [
+        200,
+        pageOf(allUsers, config.params.page, config.params.size),
+      ]);
+  };
 
+  const pagedRequests = () =>
+    axiosMock.history.get.filter((r) => r.url === "/api/admin/users/paged");
+
+  const renderPage = () =>
     render(
-      <QueryClientProvider client={queryClient}>
+      <QueryClientProvider client={new QueryClient()}>
         <MemoryRouter>
           <UsersIndexPage />
         </MemoryRouter>
       </QueryClientProvider>,
     );
+
+  test("renders without crashing", async () => {
+    setup();
+    backendHasUsers([]);
+
+    renderPage();
 
     expect(await screen.findByText("Users")).toBeInTheDocument();
   });
 
+  test("shows Page 1 of 1 and disables both buttons before data arrives and when there are no users", async () => {
+    setup();
+    backendHasUsers([]);
+
+    renderPage();
+
+    expect(
+      await screen.findByTestId("UsersIndexPage-page-info"),
+    ).toHaveTextContent("Page 1 of 1");
+    expect(screen.getByTestId("UsersIndexPage-prev")).toBeDisabled();
+    expect(screen.getByTestId("UsersIndexPage-next")).toBeDisabled();
+    await waitFor(() => expect(pagedRequests().length).toBe(1));
+  });
+
+  test("shows an empty table while the first page is still loading", async () => {
+    setup();
+    // never answer, so the page keeps showing its initial (empty) data
+    axiosMock
+      .onGet("/api/admin/users/paged")
+      .reply(() => new Promise(() => {}));
+
+    renderPage();
+
+    expect(
+      await screen.findByTestId("UsersIndexPage-page-info"),
+    ).toHaveTextContent("Page 1 of 1");
+    expect(
+      screen.queryByTestId("UsersTable-cell-row-0-col-id"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("requests the first page with the default size from the paged endpoint", async () => {
+    setup();
+    backendHasUsers(usersFixtures.threeUsers);
+
+    renderPage();
+
+    await waitFor(() => expect(pagedRequests().length).toBe(1));
+    expect(pagedRequests()[0].method).toBe("get");
+    expect(pagedRequests()[0].params).toEqual({ page: 0, size: 10 });
+  });
+
   test("renders three users in the table", async () => {
     setup();
-    const queryClient = new QueryClient();
-    axiosMock.onGet("/api/admin/users").reply(200, usersFixtures.threeUsers);
+    backendHasUsers(usersFixtures.threeUsers);
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <UsersIndexPage />
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
+    renderPage();
 
     expect(await screen.findByText("phtcon@ucsb.edu")).toBeInTheDocument();
     expect(screen.getByText("pconrad.cis@gmail.com")).toBeInTheDocument();
     expect(screen.getByText("craig.zzyzx@example.org")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("UsersTable-cell-row-0-col-id"),
+    ).toBeInTheDocument();
   });
 
   test("page size selector has correct options", async () => {
     setup();
-    const queryClient = new QueryClient();
-    axiosMock.onGet("/api/admin/users").reply(200, []);
+    backendHasUsers([]);
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <UsersIndexPage />
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
+    renderPage();
 
     const select = await screen.findByTestId("UsersIndexPage-pageSize");
     expect(select).toBeInTheDocument();
+    expect(select).toHaveValue("10");
 
     const options = select.querySelectorAll("option");
     const values = Array.from(options).map((o) => o.value);
     expect(values).toEqual(["10", "25", "50", "100", "500"]);
   });
 
-  test("paging works correctly", async () => {
+  test("next and previous load the next and previous page from the backend", async () => {
     setup();
-    const queryClient = new QueryClient();
-    // create 15 users to test pagination with default page size of 10
-    const manyUsers = Array.from({ length: 15 }, (_, i) => ({
-      id: i + 1,
-      email: `user${i + 1}@ucsb.edu`,
-      givenName: `First${i + 1}`,
-      familyName: `Last${i + 1}`,
-      admin: false,
-      moderator: false,
-    }));
-    axiosMock.onGet("/api/admin/users").reply(200, manyUsers);
+    backendHasUsers(makeUsers(15));
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <UsersIndexPage />
-        </MemoryRouter>
-      </QueryClientProvider>,
+    renderPage();
+
+    expect(await screen.findByText("user1@ucsb.edu")).toBeInTheDocument();
+    expect(screen.getByTestId("UsersIndexPage-page-info")).toHaveTextContent(
+      "Page 1 of 2",
     );
-
-    expect(
-      await screen.findByTestId("UsersIndexPage-page-info"),
-    ).toHaveTextContent("Page 1 of 2");
-
-    // first page shows user1 but not user11
-    expect(screen.getByText("user1@ucsb.edu")).toBeInTheDocument();
     expect(screen.queryByText("user11@ucsb.edu")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId("UsersIndexPage-next"));
 
+    expect(await screen.findByText("user11@ucsb.edu")).toBeInTheDocument();
     expect(screen.getByTestId("UsersIndexPage-page-info")).toHaveTextContent(
       "Page 2 of 2",
     );
-    expect(screen.getByText("user11@ucsb.edu")).toBeInTheDocument();
     expect(screen.queryByText("user1@ucsb.edu")).not.toBeInTheDocument();
+    expect(screen.getByTestId("UsersIndexPage-next")).toBeDisabled();
+    expect(screen.getByTestId("UsersIndexPage-prev")).not.toBeDisabled();
+    expect(pagedRequests().map((r) => r.params)).toContainEqual({
+      page: 1,
+      size: 10,
+    });
 
     fireEvent.click(screen.getByTestId("UsersIndexPage-prev"));
+
+    expect(await screen.findByText("user1@ucsb.edu")).toBeInTheDocument();
     expect(screen.getByTestId("UsersIndexPage-page-info")).toHaveTextContent(
       "Page 1 of 2",
     );
+    expect(screen.queryByText("user11@ucsb.edu")).not.toBeInTheDocument();
   });
 
-  test("prev button is disabled on first page", async () => {
+  test("prev and next are disabled when everything fits on one page", async () => {
     setup();
-    const queryClient = new QueryClient();
-    axiosMock.onGet("/api/admin/users").reply(200, usersFixtures.threeUsers);
+    backendHasUsers(usersFixtures.threeUsers);
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <UsersIndexPage />
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
+    renderPage();
 
-    expect(await screen.findByTestId("UsersIndexPage-prev")).toBeDisabled();
+    expect(await screen.findByText("phtcon@ucsb.edu")).toBeInTheDocument();
+    expect(screen.getByTestId("UsersIndexPage-prev")).toBeDisabled();
     expect(screen.getByTestId("UsersIndexPage-next")).toBeDisabled();
   });
 
   test("prev from page 3 goes to page 2 (not page 1)", async () => {
     setup();
-    const queryClient = new QueryClient();
-    // 21 users → 3 pages at default page size of 10
-    const manyUsers = Array.from({ length: 21 }, (_, i) => ({
-      id: i + 1,
-      email: `user${i + 1}@ucsb.edu`,
-      givenName: `First${i + 1}`,
-      familyName: `Last${i + 1}`,
-      admin: false,
-      moderator: false,
-    }));
-    axiosMock.onGet("/api/admin/users").reply(200, manyUsers);
+    // 21 users -> 3 pages at the default page size of 10
+    backendHasUsers(makeUsers(21));
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <UsersIndexPage />
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
+    renderPage();
 
-    await screen.findByTestId("UsersIndexPage-page-info");
+    expect(await screen.findByText("user1@ucsb.edu")).toBeInTheDocument();
 
-    // advance to page 3
     fireEvent.click(screen.getByTestId("UsersIndexPage-next"));
+    expect(await screen.findByText("user11@ucsb.edu")).toBeInTheDocument();
     fireEvent.click(screen.getByTestId("UsersIndexPage-next"));
+    expect(await screen.findByText("user21@ucsb.edu")).toBeInTheDocument();
     expect(screen.getByTestId("UsersIndexPage-page-info")).toHaveTextContent(
       "Page 3 of 3",
     );
-    expect(screen.getByText("user21@ucsb.edu")).toBeInTheDocument();
 
-    // prev from page 3 should go to page 2, not page 1
     fireEvent.click(screen.getByTestId("UsersIndexPage-prev"));
+
+    expect(await screen.findByText("user11@ucsb.edu")).toBeInTheDocument();
     expect(screen.getByTestId("UsersIndexPage-page-info")).toHaveTextContent(
       "Page 2 of 3",
     );
-    expect(screen.getByText("user11@ucsb.edu")).toBeInTheDocument();
     expect(screen.queryByText("user1@ucsb.edu")).not.toBeInTheDocument();
     expect(screen.queryByText("user21@ucsb.edu")).not.toBeInTheDocument();
   });
 
-  test("changing page size resets to first page", async () => {
+  test("changing page size resets to the first page and requests the new size", async () => {
     setup();
-    const queryClient = new QueryClient();
-    const manyUsers = Array.from({ length: 15 }, (_, i) => ({
-      id: i + 1,
-      email: `user${i + 1}@ucsb.edu`,
-      givenName: `First${i + 1}`,
-      familyName: `Last${i + 1}`,
-      admin: false,
-      moderator: false,
-    }));
-    axiosMock.onGet("/api/admin/users").reply(200, manyUsers);
+    backendHasUsers(makeUsers(15));
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <UsersIndexPage />
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
+    renderPage();
 
-    await screen.findByTestId("UsersIndexPage-page-info");
+    expect(await screen.findByText("user1@ucsb.edu")).toBeInTheDocument();
 
     // go to page 2
     fireEvent.click(screen.getByTestId("UsersIndexPage-next"));
+    expect(await screen.findByText("user11@ucsb.edu")).toBeInTheDocument();
     expect(screen.getByTestId("UsersIndexPage-page-info")).toHaveTextContent(
       "Page 2 of 2",
     );
@@ -214,8 +238,15 @@ describe("UsersIndexPage tests", () => {
       target: { value: "25" },
     });
 
+    expect(await screen.findByText("user1@ucsb.edu")).toBeInTheDocument();
+    expect(screen.getByText("user15@ucsb.edu")).toBeInTheDocument();
     expect(screen.getByTestId("UsersIndexPage-page-info")).toHaveTextContent(
       "Page 1 of 1",
     );
+    expect(screen.getByTestId("UsersIndexPage-pageSize")).toHaveValue("25");
+    expect(pagedRequests().map((r) => r.params)).toContainEqual({
+      page: 0,
+      size: 25,
+    });
   });
 });
