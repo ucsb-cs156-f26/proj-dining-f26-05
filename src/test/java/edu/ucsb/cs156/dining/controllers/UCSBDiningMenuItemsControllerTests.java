@@ -1,5 +1,8 @@
 package edu.ucsb.cs156.dining.controllers;
 
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -112,6 +115,31 @@ public class UCSBDiningMenuItemsControllerTests extends ControllerTestCase {
   }
 
   @Test
+  public void get_menu_item_by_id_does_not_expose_reviews() throws Exception {
+    // arrange: an item with an unmoderated review that includes moderator comments
+    Review pendingReview =
+        Review.builder()
+            .id(10L)
+            .itemsStars(2L)
+            .reviewerComments("Not great")
+            .status(ModerationStatus.AWAITING_REVIEW)
+            .moderatorComments("internal note")
+            .build();
+    MenuItem menuItem =
+        new MenuItem(
+            1L, "portola", "dinner", "Spicy Tuna Roll", "International", List.of(pendingReview));
+    when(menuItemRepository.findById(1L)).thenReturn(Optional.of(menuItem));
+
+    // act and assert
+    mockMvc
+        .perform(get("/api/diningcommons/menuitem?id=1").contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(1))
+        .andExpect(jsonPath("$.name").value("Spicy Tuna Roll"))
+        .andExpect(jsonPath("$.reviews").doesNotExist());
+  }
+
+  @Test
   public void get_menu_item_by_id_not_found() throws Exception {
     // arrange
     when(menuItemRepository.findById(1L)).thenReturn(Optional.empty());
@@ -120,5 +148,45 @@ public class UCSBDiningMenuItemsControllerTests extends ControllerTestCase {
     mockMvc
         .perform(get("/api/diningcommons/menuitem?id=1").contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isNotFound());
+  }
+
+  @Test
+  public void search_menu_items_returns_matches_without_reviews() throws Exception {
+    Review review = Review.builder().id(10L).itemsStars(4L).build();
+    MenuItem carrillo =
+        new MenuItem(1L, "carrillo", "lunch", "Chicken Tenders", "Grill", List.of(review));
+    MenuItem ortega = new MenuItem(2L, "ortega", "dinner", "Chicken Tenders", "Entrees", null);
+    when(menuItemRepository.findTop20ByNameContainingIgnoreCaseOrderByNameAscDiningCommonsCodeAsc(
+            "chick"))
+        .thenReturn(List.of(carrillo, ortega));
+
+    mockMvc
+        .perform(get("/api/diningcommons/menuitem/search").param("query", "  chick  "))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(2))
+        .andExpect(jsonPath("$[0].id").value(1))
+        .andExpect(jsonPath("$[0].name").value("Chicken Tenders"))
+        .andExpect(jsonPath("$[0].diningCommonsCode").value("carrillo"))
+        .andExpect(jsonPath("$[0].mealCode").value("lunch"))
+        .andExpect(jsonPath("$[0].station").value("Grill"))
+        .andExpect(jsonPath("$[0].reviews").doesNotExist())
+        .andExpect(jsonPath("$[1].id").value(2))
+        .andExpect(jsonPath("$[1].diningCommonsCode").value("ortega"));
+  }
+
+  @Test
+  public void search_menu_items_blank_query_returns_empty_without_querying() throws Exception {
+    mockMvc
+        .perform(get("/api/diningcommons/menuitem/search").param("query", "   "))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(0));
+
+    verify(menuItemRepository, never())
+        .findTop20ByNameContainingIgnoreCaseOrderByNameAscDiningCommonsCodeAsc(anyString());
+  }
+
+  @Test
+  public void search_menu_items_requires_query_param() throws Exception {
+    mockMvc.perform(get("/api/diningcommons/menuitem/search")).andExpect(status().isBadRequest());
   }
 }
