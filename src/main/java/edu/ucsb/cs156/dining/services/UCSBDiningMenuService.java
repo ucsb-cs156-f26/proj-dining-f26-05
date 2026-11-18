@@ -86,6 +86,9 @@ public class UCSBDiningMenuService {
       retVal = re.getBody();
 
       log.info("json: {} contentType: {} statusCode: {}", retVal, contentType, statusCode);
+    } catch (HttpClientErrorException.TooManyRequests e) {
+      // Rate limited: not the same as "closed", so let callers decide whether to back off/retry
+      throw e;
     } catch (HttpClientErrorException | HttpServerErrorException e) {
       log.info("Dining commons {} closed on {}: {}", diningCommonCode, dateTime, e.getMessage());
       return null;

@@ -20,6 +20,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -85,6 +87,22 @@ public class SecurityConfig {
                     .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
                     .logoutSuccessUrl("/"));
     return http.build();
+  }
+
+  /**
+   * Defines the role hierarchy: an ADMIN can do anything a MODERATOR can, and a MODERATOR can do
+   * anything a USER can.
+   *
+   * @return the role hierarchy used by method security (e.g. {@code @PreAuthorize})
+   */
+  @Bean
+  public static RoleHierarchy roleHierarchy() {
+    return RoleHierarchyImpl.withDefaultRolePrefix()
+        .role("ADMIN")
+        .implies("MODERATOR")
+        .role("MODERATOR")
+        .implies("USER")
+        .build();
   }
 
   /**

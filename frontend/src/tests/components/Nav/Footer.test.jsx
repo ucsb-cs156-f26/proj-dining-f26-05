@@ -7,6 +7,11 @@ describe("Footer tests", () => {
     expect(space).toBe(" ");
   });
 
+  test("uses the theme's footer class", () => {
+    render(<Footer />);
+    expect(screen.getByTestId("Footer")).toHaveClass("app-footer");
+  });
+
   test("Links are correct", () => {
     render(<Footer />);
     expect(screen.getByTestId("footer-class-website-link")).toHaveAttribute(
@@ -53,6 +58,10 @@ describe("Footer tests", () => {
 
     render(<Footer systemInfo={systemInfo} />);
 
+    expect(screen.getByTestId("Footer")).toHaveTextContent(
+      "here. Provide Feedback",
+      { normalizeWhitespace: false },
+    );
     expect(
       screen.queryByTestId("footer-feedback-modal-link"),
     ).not.toBeInTheDocument();
