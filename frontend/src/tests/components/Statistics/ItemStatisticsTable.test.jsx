@@ -1,10 +1,15 @@
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router";
 import ItemStatisticsTable from "main/components/Statistics/ItemStatisticsTable";
 import { statisticsFixtures } from "fixtures/statisticsFixtures";
 
 describe("ItemStatisticsTable tests", () => {
   test("renders all columns and data", () => {
-    render(<ItemStatisticsTable items={statisticsFixtures.threeBestItems} />);
+    render(
+      <MemoryRouter>
+        <ItemStatisticsTable items={statisticsFixtures.threeBestItems} />
+      </MemoryRouter>,
+    );
 
     const testId = "ItemStatisticsTable";
     expect(
@@ -34,8 +39,27 @@ describe("ItemStatisticsTable tests", () => {
     ).toHaveTextContent("4.20");
   });
 
+  test("links each item name to its reviews page", () => {
+    render(
+      <MemoryRouter>
+        <ItemStatisticsTable items={statisticsFixtures.threeBestItems} />
+      </MemoryRouter>,
+    );
+
+    const first = screen.getByTestId("ItemStatisticsTable-link-row-0");
+    expect(first).toHaveTextContent("Waffle");
+    expect(first).toHaveAttribute("href", "/reviews/1");
+    expect(
+      screen.getByTestId("ItemStatisticsTable-link-row-2"),
+    ).toHaveAttribute("href", "/reviews/3");
+  });
+
   test("renders headers correctly", () => {
-    render(<ItemStatisticsTable items={statisticsFixtures.threeBestItems} />);
+    render(
+      <MemoryRouter>
+        <ItemStatisticsTable items={statisticsFixtures.threeBestItems} />
+      </MemoryRouter>,
+    );
 
     expect(
       screen.getByTestId("ItemStatisticsTable-header-itemName"),
@@ -59,14 +83,17 @@ describe("ItemStatisticsTable tests", () => {
 
   test("accepts a custom testIdPrefix", () => {
     render(
-      <ItemStatisticsTable
-        items={statisticsFixtures.threeBestItems}
-        testIdPrefix="CustomPrefix"
-      />,
+      <MemoryRouter>
+        <ItemStatisticsTable
+          items={statisticsFixtures.threeBestItems}
+          testIdPrefix="CustomPrefix"
+        />
+      </MemoryRouter>,
     );
 
     expect(
       screen.getByTestId("CustomPrefix-cell-row-0-col-itemName"),
     ).toHaveTextContent("Waffle");
+    expect(screen.getByTestId("CustomPrefix-link-row-0")).toBeInTheDocument();
   });
 });

@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "react-query";
 import { MemoryRouter } from "react-router";
+import React from "react";
 import { afterEach, vi } from "vitest";
 
 import CommonsAveragesOverTimePage from "main/pages/Statistics/CommonsAveragesOverTimePage";
@@ -11,6 +12,16 @@ import { statisticsFixtures } from "fixtures/statisticsFixtures";
 
 import axios from "axios";
 import AxiosMockAdapter from "axios-mock-adapter";
+
+// ResponsiveContainer needs ResizeObserver, which jsdom lacks.
+vi.mock("recharts", async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    ResponsiveContainer: ({ children }) =>
+      React.cloneElement(children, { width: 600, height: 400 }),
+  };
+});
 
 const useBackendSpy = vi.spyOn(useBackendModule, "useBackend");
 
@@ -57,6 +68,12 @@ describe("CommonsAveragesOverTimePage tests", () => {
         ),
       ).toHaveTextContent("2025-03");
     });
+    expect(
+      screen.getByTestId("CommonsAveragesOverTimePage-chart"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/graph is potentially coming soon/),
+    ).not.toBeInTheDocument();
   });
 
   test("useBackend is called with correct cache query key, axios params, and initial data", async () => {
@@ -100,5 +117,8 @@ describe("CommonsAveragesOverTimePage tests", () => {
     expect(
       await screen.findByTestId("CommonsAveragesOverTimePage-empty"),
     ).toHaveTextContent("No reviews available yet.");
+    expect(
+      screen.queryByTestId("CommonsAveragesOverTimePage-chart"),
+    ).not.toBeInTheDocument();
   });
 });
