@@ -2,12 +2,13 @@ import React from "react";
 import CommonsMealAveragesTable from "main/components/Statistics/CommonsMealAveragesTable";
 import { useBackend } from "main/utils/useBackend";
 
-export default function CommonsMealAveragesSection({ code }) {
+export default function CommonsMealAveragesSection({ code, period }) {
   const { data: averages } = useBackend(
-    [`/api/statistics/commons/${code}/meals/averages`],
+    [`/api/statistics/commons/${code}/meals/averages`, period],
     {
       method: "GET",
       url: `/api/statistics/commons/${code}/meals/averages`,
+      params: { period },
     },
     [],
   );
