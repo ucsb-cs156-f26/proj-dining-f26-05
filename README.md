@@ -134,6 +134,17 @@ Unless you want a particular integration test to *also* be run when you type `mv
 
 Note that while `mvn test` is typically sufficient to run tests, we have found that if you haven't compiled the test code yet, running `mvn failsafe:integration-test` may not actually run any of the tests.
 
+### WireMock servers in integration tests
+
+Integration tests that extend `WebTestCase` never talk to Google or to the UCSB Developer API. Instead, `WebTestCase` starts two separate [WireMock](https://wiremock.org/) servers:
+
+| Port | Stands in for | Stubs defined in |
+|------|---------------|------------------|
+| 8090 | Google OAuth login | `WiremockServiceImpl.setupOauthMocks` |
+| 8091 | UCSB Developer API (`app.ucsb.api.host`) | `UCSBDiningApiMocks` (`src/test/java/edu/ucsb/cs156/dining/`) |
+
+The UCSB API stubs return the JSON files in `src/test/resources/__files/ucsb-dining-api/`, so integration tests do not need a `UCSB_API_KEY`. To change the dining commons, meals or menu items that tests see, edit those files. A test can also add its own stubs, or check which requests the backend made, through `ucsbApiWireMockServer`. See `PostReviewWebIT` for an example.
+
 
 ## Partial pitest runs
 
