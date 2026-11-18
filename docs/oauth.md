@@ -37,11 +37,32 @@ at the top shows **the same project your OAuth client (`GOOGLE_CLIENT_ID`) belon
    - This is only possible if the project belongs to the `ucsb.edu` organization. A project created
      under a personal Gmail account can't be set to Internal; create a new project while logged in
      with your `@ucsb.edu` account instead.
-   - Once it's Internal, only `@ucsb.edu` accounts can log in to the app.
+   - Once it's Internal, only `@ucsb.edu` accounts can log in to the app, and this applies to
+     every app that uses this OAuth client.
+   - Why Internal: `gmail.send` is a sensitive scope. For an External app, Google shows an
+     "unverified app" warning and limits it to 100 users unless the app goes through Google's
+     verification. Internal apps skip both.
 2. **Add the Gmail scope.** Go to **Google Auth Platform → Data Access**, click **Add or remove scopes**,
    and add `https://www.googleapis.com/auth/gmail.send` (shown as "Send email on your behalf"). Save.
 3. **Turn on the Gmail API.** Go to **APIs & Services → Library**, search for **Gmail API**, and click
    **Enable**. If the button says **Manage**, it's already on.
+
+On Dokku, also make sure `APP_NAME` and `APP_HOSTNAME` are set, because the link to the moderation
+page in the email is built from them. Without them, the link comes out as
+`https://app-name-unset.app-hostname-unset/moderate`. Check them with:
+
+```
+dokku enter <app> web env | grep -E 'APP_NAME|APP_HOSTNAME'
+```
+
+If they're missing (or show literal `$(...)` text), set them directly:
+
+```
+dokku config:set <app> APP_NAME=<app> APP_HOSTNAME=dokku-05.cs.ucsb.edu
+```
+
+(Use your own app name, and your team's dokku host in place of `dokku-05`.) See also
+[docs/dokku.md](dokku.md).
 
 After this, log out of the app and log back in. The Google login screen should now ask for permission to
 "Send email on your behalf"; accept it. Users who logged in before these changes have to log out and back
