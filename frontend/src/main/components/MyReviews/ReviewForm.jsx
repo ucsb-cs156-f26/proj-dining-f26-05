@@ -1,5 +1,6 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { Form, Button } from "react-bootstrap";
+import { useForm } from "react-hook-form";
 
 function dateTimeLocalValue(dateTime) {
   return dateTime
@@ -15,34 +16,38 @@ export default function ReviewForm({
   submitAction,
   submitButtonText = "Submit Review",
 }) {
-  const [comments, setComments] = React.useState(initialComments);
-  const [stars, setStars] = React.useState(initialStars);
-  const [dateServed, setDateServed] = React.useState(() =>
-    dateTimeLocalValue(initialDateServed),
-  );
+  const testIdPrefix = "ReviewForm";
 
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      reviewerComments: initialComments,
+      itemsStars: initialStars,
+      dateItemServed: dateTimeLocalValue(initialDateServed),
+    },
+  });
+
+  // When the initial values change (e.g. the review finishes loading from the
+  // backend), update the form. If no new date is given, keep the date that is
+  // currently in the form.
   useEffect(() => {
-    setComments(initialComments);
-    setStars(initialStars);
+    setValue("reviewerComments", initialComments);
+    setValue("itemsStars", initialStars);
     if (initialDateServed) {
-      setDateServed(dateTimeLocalValue(initialDateServed));
+      setValue("dateItemServed", dateTimeLocalValue(initialDateServed));
     }
-  }, [initialComments, initialDateServed, initialStars]);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    submitAction({
-      reviewerComments: comments,
-      itemsStars: stars,
-      dateItemServed: dateServed,
-    });
-  };
+  }, [initialComments, initialDateServed, initialStars, setValue]);
 
   return (
-    <Form onSubmit={handleSubmit}>
+    <Form onSubmit={handleSubmit(submitAction)}>
       <Form.Group className="mb-3">
         <Form.Label htmlFor="review-item-name">Item Name</Form.Label>
         <Form.Control
+          data-testid={`${testIdPrefix}-itemName`}
           id="review-item-name"
           type="text"
           value={initialItemName}
@@ -53,20 +58,26 @@ export default function ReviewForm({
       <Form.Group className="mb-3">
         <Form.Label htmlFor="review-comments">Comments</Form.Label>
         <Form.Control
+          data-testid={`${testIdPrefix}-reviewerComments`}
           id="review-comments"
           as="textarea"
           rows={3}
-          value={comments}
-          onChange={(e) => setComments(e.target.value)}
+          {...register("reviewerComments")}
         />
       </Form.Group>
 
       <Form.Group className="mb-3">
         <Form.Label htmlFor="review-stars">Stars (1 to 5)</Form.Label>
         <Form.Select
+          data-testid={`${testIdPrefix}-itemsStars`}
           id="review-stars"
-          value={stars}
-          onChange={(e) => setStars(Number(e.target.value))}
+          isInvalid={Boolean(errors.itemsStars)}
+          {...register("itemsStars", {
+            valueAsNumber: true,
+            required: "Stars are required.",
+            min: { value: 1, message: "Stars must be at least 1." },
+            max: { value: 5, message: "Stars must be at most 5." },
+          })}
         >
           {[1, 2, 3, 4, 5].map((num) => (
             <option key={num} value={num}>
@@ -74,6 +85,9 @@ export default function ReviewForm({
             </option>
           ))}
         </Form.Select>
+        <Form.Control.Feedback type="invalid">
+          {errors.itemsStars?.message}
+        </Form.Control.Feedback>
       </Form.Group>
 
       <Form.Group className="mb-3">
@@ -81,14 +95,22 @@ export default function ReviewForm({
           Date and Time Item was Served
         </Form.Label>
         <Form.Control
+          data-testid={`${testIdPrefix}-dateItemServed`}
           id="review-date"
           type="datetime-local"
-          value={dateServed}
-          onChange={(e) => setDateServed(e.target.value)}
+          isInvalid={Boolean(errors.dateItemServed)}
+          {...register("dateItemServed", {
+            required: "Date and time served is required.",
+          })}
         />
+        <Form.Control.Feedback type="invalid">
+          {errors.dateItemServed?.message}
+        </Form.Control.Feedback>
       </Form.Group>
 
-      <Button type="submit">{submitButtonText}</Button>
+      <Button type="submit" data-testid={`${testIdPrefix}-submit`}>
+        {submitButtonText}
+      </Button>
     </Form>
   );
 }
