@@ -22,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -57,6 +58,14 @@ public class ReviewController extends ApiController {
   @Autowired ReviewRepository reviewRepository;
 
   @Autowired MenuItemRepository menuItemRepository;
+
+  @Autowired RoleHierarchy roleHierarchy;
+
+  private boolean currentUserHasRole(String role) {
+    return roleHierarchy.getReachableGrantedAuthorities(getCurrentUser().getRoles()).stream()
+        .map(GrantedAuthority::getAuthority)
+        .anyMatch(role::equals);
+  }
 
   /**
    * This method returns a list of all Reviews.
@@ -210,13 +219,8 @@ public class ReviewController extends ApiController {
             .findById(id)
             .orElseThrow(() -> new EntityNotFoundException(Review.class, id));
 
-    CurrentUser currentUser = getCurrentUser();
-    User current = currentUser.getUser();
-    boolean currentUserIsAdmin =
-        currentUser.getRoles().stream()
-            .map(GrantedAuthority::getAuthority)
-            .anyMatch("ROLE_ADMIN"::equals);
-    if (current.getId() != review.getReviewer().getId() && !currentUserIsAdmin) {
+    User current = getCurrentUser().getUser();
+    if (current.getId() != review.getReviewer().getId() && !currentUserHasRole("ROLE_ADMIN")) {
       throw new AccessDeniedException("No permission to delete review");
     }
 
@@ -225,7 +229,7 @@ public class ReviewController extends ApiController {
   }
 
   @Operation(summary = "Moderate a review")
-  @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_MODERATOR')")
+  @PreAuthorize("hasRole('ROLE_MODERATOR')")
   @PutMapping("/moderate")
   public Review moderateReview(
       @Parameter Long id, @Parameter ModerationStatus status, @Parameter String moderatorComments) {
@@ -242,7 +246,7 @@ public class ReviewController extends ApiController {
   }
 
   @Operation(summary = "See reviews that need moderation")
-  @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_MODERATOR')")
+  @PreAuthorize("hasRole('ROLE_MODERATOR')")
   @GetMapping("/needsmoderation")
   public Iterable<Review> needsmoderation() {
     Iterable<Review> reviewsList = reviewRepository.findByStatus(ModerationStatus.AWAITING_REVIEW);
@@ -264,14 +268,9 @@ public class ReviewController extends ApiController {
 
     // 3. Evaluate permissions
     boolean isOwner = (review.getReviewer().getId() == requester.getId());
-    boolean isAdmin =
-        getCurrentUser().getRoles().stream().anyMatch(r -> r.getAuthority().equals("ROLE_ADMIN"));
-    boolean isModerator =
-        getCurrentUser().getRoles().stream()
-            .anyMatch(r -> r.getAuthority().equals("ROLE_MODERATOR"));
 
-    // 4. Enforce access rules
-    if (!(isOwner || isAdmin || isModerator)) {
+    // 4. Enforce access rules (admins are moderators via the role hierarchy)
+    if (!(isOwner || currentUserHasRole("ROLE_MODERATOR"))) {
       throw new AccessDeniedException("No permission to view this review");
     }
 
