@@ -23,9 +23,13 @@ export default function MenuItemPage() {
     [],
   );
 
+  const mealName = meal.at(0).toUpperCase() + meal.substring(1);
+
   return (
     <BasicLayout>
-      <h2>{meal.at(0).toUpperCase() + meal.substring(1)}</h2>
+      <h2 data-testid="MenuItemPage-title">
+        {`${mealName} at ${diningCommons} for ${date}`}
+      </h2>
       <MenuItemTable currentUser={currentUser} menuItems={menuItems} />
     </BasicLayout>
   );

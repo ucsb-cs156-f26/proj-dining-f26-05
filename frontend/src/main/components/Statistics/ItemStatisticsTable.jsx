@@ -1,5 +1,6 @@
 import React from "react";
 import OurTable from "main/components/OurTable";
+import { Link } from "react-router";
 
 export default function ItemStatisticsTable({
   items,
@@ -9,6 +10,14 @@ export default function ItemStatisticsTable({
     {
       Header: "Item",
       accessor: "itemName",
+      Cell: ({ row }) => (
+        <Link
+          to={`/reviews/${row.original.itemId}`}
+          data-testid={`${testIdPrefix}-link-row-${row.index}`}
+        >
+          {row.original.itemName}
+        </Link>
+      ),
     },
     {
       Header: "Dining Commons",

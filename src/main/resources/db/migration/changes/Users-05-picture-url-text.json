@@ -1,0 +1,26 @@
+{ "databaseChangeLog": [
+  {
+    "changeSet": {
+      "id": "Users-05-picture-url-text",
+      "author": "mintoku",
+      "preConditions": [
+        {
+          "onFail": "MARK_RAN"
+        },
+        {
+          "tableExists": {
+            "tableName": "USERS"
+          }
+        }
+      ],
+      "changes": [
+        {
+          "modifyDataType": {
+            "tableName": "USERS",
+            "columnName": "PICTURE_URL",
+            "newDataType": "TEXT"
+          }
+        }]
+    }
+  }
+]}
