@@ -190,4 +190,69 @@ describe("ReviewForm tests", () => {
     expect(await screen.findByText("Stars are required.")).toBeInTheDocument();
     expect(submitAction).not.toHaveBeenCalled();
   });
+  test("defaults the date served to the current local time", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    // the Date constructor with separate fields uses local time
+    vi.setSystemTime(new Date(2026, 10, 17, 17, 5));
+    try {
+      render(<ReviewForm submitAction={vi.fn()} />);
+      expect(screen.getByTestId("ReviewForm-dateItemServed")).toHaveValue(
+        "2026-11-17T17:05",
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("submits empty comments, not null, when the initial comments are null", async () => {
+    const submitAction = vi.fn();
+    render(
+      <ReviewForm
+        initialComments={null}
+        initialDateServed="2024-04-01T12:34:56"
+        submitAction={submitAction}
+      />,
+    );
+
+    expect(screen.getByTestId("ReviewForm-reviewerComments")).toHaveValue("");
+    fireEvent.click(screen.getByTestId("ReviewForm-submit"));
+
+    await waitFor(() => expect(submitAction).toHaveBeenCalled());
+    expect(submitAction.mock.calls[0][0].reviewerComments).toBe("");
+  });
+
+  test("clears a showing validation error when new initial values arrive", async () => {
+    const submitAction = vi.fn();
+    const { rerender } = render(
+      <ReviewForm
+        initialDateServed="2024-04-01T12:34:56"
+        submitAction={submitAction}
+      />,
+    );
+
+    fireEvent.change(screen.getByTestId("ReviewForm-dateItemServed"), {
+      target: { value: "" },
+    });
+    fireEvent.click(screen.getByTestId("ReviewForm-submit"));
+    expect(
+      await screen.findByText("Date and time served is required."),
+    ).toBeInTheDocument();
+
+    rerender(
+      <ReviewForm
+        initialDateServed="2024-04-02T13:45:59"
+        submitAction={submitAction}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.queryByText("Date and time served is required."),
+      ).not.toBeInTheDocument(),
+    );
+    expect(screen.getByTestId("ReviewForm-dateItemServed")).toHaveValue(
+      "2024-04-02T13:45",
+    );
+    expect(submitAction).not.toHaveBeenCalled();
+  });
 });

@@ -1,12 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Form, Button } from "react-bootstrap";
 import { useForm } from "react-hook-form";
-
-function dateTimeLocalValue(dateTime) {
-  return dateTime
-    ? dateTime.slice(0, 16)
-    : new Date().toISOString().slice(0, 16);
-}
+import { localDateTimeString } from "main/utils/localDateTime";
 
 export default function ReviewForm({
   initialItemName = "",
@@ -18,29 +13,34 @@ export default function ReviewForm({
 }) {
   const testIdPrefix = "ReviewForm";
 
+  // useForm only reads defaultValues on the first render, so build them once.
+  // The effect below fills in the other fields from the props.
+  const [defaultValues] = useState(() => ({
+    dateItemServed: localDateTimeString(new Date()),
+  }));
+
   const {
     register,
     handleSubmit,
-    setValue,
+    reset,
+    getValues,
     formState: { errors },
-  } = useForm({
-    defaultValues: {
-      reviewerComments: initialComments,
-      itemsStars: initialStars,
-      dateItemServed: dateTimeLocalValue(initialDateServed),
-    },
-  });
+  } = useForm({ defaultValues });
 
   // When the initial values change (e.g. the review finishes loading from the
-  // backend), update the form. If no new date is given, keep the date that is
-  // currently in the form.
+  // backend), reset the form to them. reset() also clears old validation errors
+  // and makes these the new baseline for isDirty. If no new date is given, keep
+  // the date that is currently in the form.
   useEffect(() => {
-    setValue("reviewerComments", initialComments);
-    setValue("itemsStars", initialStars);
-    if (initialDateServed) {
-      setValue("dateItemServed", dateTimeLocalValue(initialDateServed));
-    }
-  }, [initialComments, initialDateServed, initialStars, setValue]);
+    reset({
+      reviewerComments: initialComments ?? "",
+      itemsStars: initialStars,
+      // datetime-local wants "YYYY-MM-DDTHH:MM", so drop any seconds
+      dateItemServed: initialDateServed
+        ? initialDateServed.slice(0, 16)
+        : getValues().dateItemServed,
+    });
+  }, [initialComments, initialDateServed, initialStars, reset, getValues]);
 
   return (
     <Form onSubmit={handleSubmit(submitAction)}>
