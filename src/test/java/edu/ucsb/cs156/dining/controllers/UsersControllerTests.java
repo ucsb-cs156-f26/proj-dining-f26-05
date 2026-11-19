@@ -17,6 +17,7 @@ import edu.ucsb.cs156.dining.models.UserDTO;
 import edu.ucsb.cs156.dining.repositories.AdminRepository;
 import edu.ucsb.cs156.dining.repositories.ModeratorRepository;
 import edu.ucsb.cs156.dining.repositories.UserRepository;
+import edu.ucsb.cs156.dining.services.UserDataDTOService;
 import edu.ucsb.cs156.dining.statuses.ModerationStatus;
 import edu.ucsb.cs156.dining.testconfig.TestConfig;
 import java.time.LocalDate;
@@ -26,9 +27,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MvcResult;
@@ -42,6 +49,59 @@ public class UsersControllerTests extends ControllerTestCase {
   @MockBean UserRepository userRepository;
   @MockBean AdminRepository adminRepository;
   @MockBean ModeratorRepository moderatorRepository;
+  @MockBean UserDataDTOService userDataDTOService;
+
+  // ---------- GET /api/admin/users/paged ----------
+
+  @Test
+  public void users_paged__logged_out() throws Exception {
+    mockMvc.perform(get("/api/admin/users/paged")).andExpect(status().is(403));
+  }
+
+  @WithMockUser(roles = {"USER"})
+  @Test
+  public void users_paged__user_logged_in() throws Exception {
+    mockMvc.perform(get("/api/admin/users/paged")).andExpect(status().is(403));
+  }
+
+  @WithMockUser(roles = {"ADMIN", "USER"})
+  @Test
+  public void users_paged__admin_gets_requested_page() throws Exception {
+    // arrange
+    User u3 = User.builder().id(3L).email("user3@example.org").build();
+    User u4 = User.builder().id(4L).email("user4@example.org").build();
+    Pageable requested = PageRequest.of(1, 2, Sort.by(Sort.Direction.ASC, "id"));
+    Page<UserDTO> page =
+        new PageImpl<>(
+            List.of(new UserDTO(u3, true, false), new UserDTO(u4, false, true)), requested, 5);
+    when(userDataDTOService.getUserDataDTOs(any(Pageable.class))).thenReturn(page);
+
+    // act
+    mockMvc
+        .perform(get("/api/admin/users/paged?page=1&size=2&sort=id,asc"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content.length()").value(2))
+        .andExpect(jsonPath("$.content[0].id").value(3))
+        .andExpect(jsonPath("$.content[0].email").value("user3@example.org"))
+        .andExpect(jsonPath("$.content[0].admin").value(true))
+        .andExpect(jsonPath("$.content[0].moderator").value(false))
+        .andExpect(jsonPath("$.content[1].id").value(4))
+        .andExpect(jsonPath("$.content[1].admin").value(false))
+        .andExpect(jsonPath("$.content[1].moderator").value(true))
+        .andExpect(jsonPath("$.totalElements").value(5))
+        .andExpect(jsonPath("$.totalPages").value(3))
+        .andExpect(jsonPath("$.number").value(1))
+        .andExpect(jsonPath("$.size").value(2));
+
+    // assert: the query parameters were turned into the right Pageable
+    ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
+    verify(userDataDTOService, times(1)).getUserDataDTOs(captor.capture());
+    assertEquals(1, captor.getValue().getPageNumber());
+    assertEquals(2, captor.getValue().getPageSize());
+    assertEquals(Sort.by(Sort.Direction.ASC, "id"), captor.getValue().getSort());
+  }
+
+  // ---------- GET /api/admin/users ----------
 
   @Test
   public void users__logged_out() throws Exception {

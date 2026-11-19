@@ -9,6 +9,7 @@ import edu.ucsb.cs156.dining.models.UserDTO;
 import edu.ucsb.cs156.dining.repositories.AdminRepository;
 import edu.ucsb.cs156.dining.repositories.ModeratorRepository;
 import edu.ucsb.cs156.dining.repositories.UserRepository;
+import edu.ucsb.cs156.dining.services.UserDataDTOService;
 import edu.ucsb.cs156.dining.statuses.ModerationStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -16,8 +17,11 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.StreamSupport;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -48,6 +52,8 @@ public class UsersController extends ApiController {
 
   @Autowired ObjectMapper mapper;
 
+  @Autowired UserDataDTOService userDataDTOService;
+
   /**
    * This method returns a list of all users. Accessible only to users with the role "ROLE_ADMIN".
    *
@@ -64,6 +70,24 @@ public class UsersController extends ApiController {
         StreamSupport.stream(users.spliterator(), false).map(this::userDTO).toList();
     String body = mapper.writeValueAsString(userDTOs);
     return ResponseEntity.ok().body(body);
+  }
+
+  /**
+   * This method returns one page of users, with their admin and moderator flags. Accessible only to
+   * users with the role "ROLE_ADMIN".
+   *
+   * <p>Use the standard Spring query parameters to choose the page, e.g. {@code
+   * /api/admin/users/paged?page=0&size=10}. Pages are always sorted by user id; a {@code sort}
+   * parameter is ignored.
+   *
+   * @param pageable page number, page size, and sort order (from the query parameters)
+   * @return the requested page of users
+   */
+  @Operation(summary = "Get one page of users, sorted by user id")
+  @PreAuthorize("hasRole('ROLE_ADMIN')")
+  @GetMapping("/admin/users/paged")
+  public Page<UserDTO> usersPaged(@ParameterObject Pageable pageable) {
+    return userDataDTOService.getUserDataDTOs(pageable);
   }
 
   /**
