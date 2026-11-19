@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>15/15</span>
+                <span class='fraction'>14/14</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>13/13</span>
+                <span class='fraction'>12/12</span>
             </div>
         
             
@@ -144,7 +144,8 @@
 <a name='L79'></a><a href='#L79'>79</a>
 <a name='L80'></a><a href='#L80'>80</a>
 <a name='L81'></a><a href='#L81'>81</a>
-<a name='L82'></a><a href='#L82'>82</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -153,30 +154,31 @@
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">22x</span>
-<span class="cline-any cline-yes">22x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">22x</span>
+<span class="cline-any cline-yes">41x</span>
+<span class="cline-any cline-yes">41x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">41x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">22x</span>
-<span class="cline-any cline-yes">22x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">22x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">41x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">41x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">22x</span>
+<span class="cline-any cline-yes">41x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -190,7 +192,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">105x</span>
+<span class="cline-any cline-yes">200x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -237,20 +239,21 @@ export default function UsersIndexPage() {
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(0);
 &nbsp;
-  const { data: users } = useBackend(
-    // Stryker disable next-line ArrayDeclaration,StringLiteral: query key caching detail
-    ["/api/admin/users"],
-    // Stryker disable next-line StringLiteral: axios treats a falsy method as "GET"
-    { method: "GET", url: "/api/admin/users" },
-    // Stryker disable next-line ArrayDeclaration: empty array is the correct default
-    [],
+  // The backend returns one page of users at a time (a Spring Page object:
+  // { content: [...users], totalPages, totalElements, number, size, ... }).
+  const { data: usersPage } = useBackend(
+    // Stryker disable next-line StringLiteral: query key caching detail
+    ["/api/admin/users/paged", currentPage, pageSize],
+    {
+      // Stryker disable next-line StringLiteral: axios treats a falsy method as "GET"
+      method: "GET",
+      url: "/api/admin/users/paged",
+      params: { page: currentPage, size: pageSize },
+    },
+    { content: [], totalPages: 0 },
   );
 &nbsp;
-  const totalPages = Math.ceil(users.length / pageSize);
-  const paginatedUsers = users.slice(
-    currentPage * pageSize,
-    (currentPage + 1) * pageSize,
-  );
+  const totalPages = usersPage.totalPages;
 &nbsp;
   const handlePageSizeChange = (e) =&gt; {
     setPageSize(Number(e.target.value));
@@ -277,7 +280,7 @@ export default function UsersIndexPage() {
             ))}
           &lt;/Form.Select&gt;
         &lt;/Form.Group&gt;
-        &lt;UsersTable users={paginatedUsers} /&gt;
+        &lt;UsersTable users={usersPage.content} /&gt;
         &lt;div className="d-flex align-items-center gap-2 mt-2"&gt;
           &lt;button
             className="btn btn-outline-secondary"
@@ -313,7 +316,7 @@ export default function UsersIndexPage() {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-11-19T20:05:39.967Z
+                at 2026-11-19T23:45:24.292Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
