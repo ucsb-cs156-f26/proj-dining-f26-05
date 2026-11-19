@@ -202,31 +202,35 @@ import org.springframework.web.bind.annotation.RestController;
   @Operation(summary = &quot;Average review score for each dining commons&quot;)
   @PreAuthorize(&quot;hasRole('ROLE_USER')&quot;)
   @GetMapping(&quot;/commons/averages&quot;)
-  public List&lt;CommonsAverage&gt; commonsAverages() {
-<span class="fc" id="L206">    log.info(&quot;statistics.commonsAverages&quot;);</span>
-<span class="fc" id="L207">    Map&lt;String, double[]&gt; byCommons = new HashMap&lt;&gt;();</span>
-<span class="fc bfc" id="L208" title="All 2 branches covered.">    for (Review r : approvedReviews()) {</span>
-<span class="fc" id="L209">      MenuItem item = r.getItem();</span>
-<span class="fc bfc" id="L210" title="All 6 branches covered.">      if (item == null || item.getDiningCommonsCode() == null || r.getItemsStars() == null) {</span>
-<span class="fc" id="L211">        continue;</span>
+  public List&lt;CommonsAverage&gt; commonsAverages(
+      @Parameter(name = &quot;period&quot;, description = &quot;ALL, 6M, 1M, or 1W&quot;)
+          @RequestParam(name = &quot;period&quot;, defaultValue = PERIOD_ALL)
+          String period) {
+<span class="fc" id="L209">    log.info(&quot;statistics.commonsAverages period={}&quot;, period);</span>
+<span class="fc" id="L210">    LocalDateTime cutoff = cutoffForPeriod(period, LocalDateTime.now());</span>
+<span class="fc" id="L211">    Map&lt;String, double[]&gt; byCommons = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L212" title="All 2 branches covered.">    for (Review r : filterByCutoff(approvedReviews(), cutoff)) {</span>
+<span class="fc" id="L213">      MenuItem item = r.getItem();</span>
+<span class="fc bfc" id="L214" title="All 6 branches covered.">      if (item == null || item.getDiningCommonsCode() == null || r.getItemsStars() == null) {</span>
+<span class="fc" id="L215">        continue;</span>
       }
-<span class="fc" id="L213">      double[] acc = byCommons.computeIfAbsent(item.getDiningCommonsCode(), k -&gt; new double[2]);</span>
-<span class="fc" id="L214">      acc[0] += r.getItemsStars();</span>
-<span class="fc" id="L215">      acc[1] += 1.0;</span>
-<span class="fc" id="L216">    }</span>
-<span class="fc" id="L217">    List&lt;CommonsAverage&gt; result = new ArrayList&lt;&gt;();</span>
-<span class="fc bfc" id="L218" title="All 2 branches covered.">    for (Map.Entry&lt;String, double[]&gt; entry : byCommons.entrySet()) {</span>
-<span class="fc" id="L219">      double[] acc = entry.getValue();</span>
-<span class="fc" id="L220">      long count = (long) acc[1];</span>
-<span class="fc" id="L221">      result.add(</span>
-<span class="fc" id="L222">          CommonsAverage.builder()</span>
-<span class="fc" id="L223">              .diningCommonsCode(entry.getKey())</span>
-<span class="fc" id="L224">              .averageStars(acc[0] / acc[1])</span>
-<span class="fc" id="L225">              .reviewCount(count)</span>
-<span class="fc" id="L226">              .build());</span>
-<span class="fc" id="L227">    }</span>
-<span class="fc" id="L228">    result.sort(Comparator.comparing(CommonsAverage::getDiningCommonsCode));</span>
-<span class="fc" id="L229">    return result;</span>
+<span class="fc" id="L217">      double[] acc = byCommons.computeIfAbsent(item.getDiningCommonsCode(), k -&gt; new double[2]);</span>
+<span class="fc" id="L218">      acc[0] += r.getItemsStars();</span>
+<span class="fc" id="L219">      acc[1] += 1.0;</span>
+<span class="fc" id="L220">    }</span>
+<span class="fc" id="L221">    List&lt;CommonsAverage&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L222" title="All 2 branches covered.">    for (Map.Entry&lt;String, double[]&gt; entry : byCommons.entrySet()) {</span>
+<span class="fc" id="L223">      double[] acc = entry.getValue();</span>
+<span class="fc" id="L224">      long count = (long) acc[1];</span>
+<span class="fc" id="L225">      result.add(</span>
+<span class="fc" id="L226">          CommonsAverage.builder()</span>
+<span class="fc" id="L227">              .diningCommonsCode(entry.getKey())</span>
+<span class="fc" id="L228">              .averageStars(acc[0] / acc[1])</span>
+<span class="fc" id="L229">              .reviewCount(count)</span>
+<span class="fc" id="L230">              .build());</span>
+<span class="fc" id="L231">    }</span>
+<span class="fc" id="L232">    result.sort(Comparator.comparing(CommonsAverage::getDiningCommonsCode));</span>
+<span class="fc" id="L233">    return result;</span>
   }
 
   /** Average review score for each dining commons grouped by month (used to draw a graph). */
@@ -234,42 +238,42 @@ import org.springframework.web.bind.annotation.RestController;
   @PreAuthorize(&quot;hasRole('ROLE_USER')&quot;)
   @GetMapping(&quot;/commons/averages/overtime&quot;)
   public List&lt;CommonsAverageOverTime&gt; commonsAveragesOverTime() {
-<span class="fc" id="L237">    log.info(&quot;statistics.commonsAveragesOverTime&quot;);</span>
-<span class="fc" id="L238">    Map&lt;String, double[]&gt; buckets = new HashMap&lt;&gt;();</span>
-<span class="fc" id="L239">    Map&lt;String, String[]&gt; labels = new HashMap&lt;&gt;();</span>
-<span class="fc bfc" id="L240" title="All 2 branches covered.">    for (Review r : approvedReviews()) {</span>
-<span class="fc" id="L241">      MenuItem item = r.getItem();</span>
-<span class="fc bfc" id="L242" title="All 2 branches covered.">      if (item == null</span>
-<span class="fc bfc" id="L243" title="All 2 branches covered.">          || item.getDiningCommonsCode() == null</span>
-<span class="fc bfc" id="L244" title="All 2 branches covered.">          || r.getItemsStars() == null</span>
-<span class="fc bfc" id="L245" title="All 2 branches covered.">          || r.getDateItemServed() == null) {</span>
-<span class="fc" id="L246">        continue;</span>
+<span class="fc" id="L241">    log.info(&quot;statistics.commonsAveragesOverTime&quot;);</span>
+<span class="fc" id="L242">    Map&lt;String, double[]&gt; buckets = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L243">    Map&lt;String, String[]&gt; labels = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L244" title="All 2 branches covered.">    for (Review r : approvedReviews()) {</span>
+<span class="fc" id="L245">      MenuItem item = r.getItem();</span>
+<span class="fc bfc" id="L246" title="All 2 branches covered.">      if (item == null</span>
+<span class="fc bfc" id="L247" title="All 2 branches covered.">          || item.getDiningCommonsCode() == null</span>
+<span class="fc bfc" id="L248" title="All 2 branches covered.">          || r.getItemsStars() == null</span>
+<span class="fc bfc" id="L249" title="All 2 branches covered.">          || r.getDateItemServed() == null) {</span>
+<span class="fc" id="L250">        continue;</span>
       }
-<span class="fc" id="L248">      String code = item.getDiningCommonsCode();</span>
-<span class="fc" id="L249">      String period = r.getDateItemServed().format(MONTH_FORMATTER);</span>
-<span class="fc" id="L250">      String key = code + &quot;|&quot; + period;</span>
-<span class="fc" id="L251">      double[] acc = buckets.computeIfAbsent(key, k -&gt; new double[2]);</span>
-<span class="fc" id="L252">      acc[0] += r.getItemsStars();</span>
-<span class="fc" id="L253">      acc[1] += 1.0;</span>
-<span class="fc" id="L254">      labels.computeIfAbsent(key, k -&gt; new String[] {code, period});</span>
-<span class="fc" id="L255">    }</span>
-<span class="fc" id="L256">    List&lt;CommonsAverageOverTime&gt; result = new ArrayList&lt;&gt;();</span>
-<span class="fc bfc" id="L257" title="All 2 branches covered.">    for (Map.Entry&lt;String, double[]&gt; entry : buckets.entrySet()) {</span>
-<span class="fc" id="L258">      String[] label = labels.get(entry.getKey());</span>
-<span class="fc" id="L259">      double[] acc = entry.getValue();</span>
-<span class="fc" id="L260">      long count = (long) acc[1];</span>
-<span class="fc" id="L261">      result.add(</span>
-<span class="fc" id="L262">          CommonsAverageOverTime.builder()</span>
-<span class="fc" id="L263">              .diningCommonsCode(label[0])</span>
-<span class="fc" id="L264">              .period(label[1])</span>
-<span class="fc" id="L265">              .averageStars(acc[0] / acc[1])</span>
-<span class="fc" id="L266">              .reviewCount(count)</span>
-<span class="fc" id="L267">              .build());</span>
-<span class="fc" id="L268">    }</span>
-<span class="fc" id="L269">    result.sort(</span>
-<span class="fc" id="L270">        Comparator.comparing(CommonsAverageOverTime::getDiningCommonsCode)</span>
-<span class="fc" id="L271">            .thenComparing(CommonsAverageOverTime::getPeriod));</span>
-<span class="fc" id="L272">    return result;</span>
+<span class="fc" id="L252">      String code = item.getDiningCommonsCode();</span>
+<span class="fc" id="L253">      String period = r.getDateItemServed().format(MONTH_FORMATTER);</span>
+<span class="fc" id="L254">      String key = code + &quot;|&quot; + period;</span>
+<span class="fc" id="L255">      double[] acc = buckets.computeIfAbsent(key, k -&gt; new double[2]);</span>
+<span class="fc" id="L256">      acc[0] += r.getItemsStars();</span>
+<span class="fc" id="L257">      acc[1] += 1.0;</span>
+<span class="fc" id="L258">      labels.computeIfAbsent(key, k -&gt; new String[] {code, period});</span>
+<span class="fc" id="L259">    }</span>
+<span class="fc" id="L260">    List&lt;CommonsAverageOverTime&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L261" title="All 2 branches covered.">    for (Map.Entry&lt;String, double[]&gt; entry : buckets.entrySet()) {</span>
+<span class="fc" id="L262">      String[] label = labels.get(entry.getKey());</span>
+<span class="fc" id="L263">      double[] acc = entry.getValue();</span>
+<span class="fc" id="L264">      long count = (long) acc[1];</span>
+<span class="fc" id="L265">      result.add(</span>
+<span class="fc" id="L266">          CommonsAverageOverTime.builder()</span>
+<span class="fc" id="L267">              .diningCommonsCode(label[0])</span>
+<span class="fc" id="L268">              .period(label[1])</span>
+<span class="fc" id="L269">              .averageStars(acc[0] / acc[1])</span>
+<span class="fc" id="L270">              .reviewCount(count)</span>
+<span class="fc" id="L271">              .build());</span>
+<span class="fc" id="L272">    }</span>
+<span class="fc" id="L273">    result.sort(</span>
+<span class="fc" id="L274">        Comparator.comparing(CommonsAverageOverTime::getDiningCommonsCode)</span>
+<span class="fc" id="L275">            .thenComparing(CommonsAverageOverTime::getPeriod));</span>
+<span class="fc" id="L276">    return result;</span>
   }
 
   /** Average review score for each meal slot at the supplied dining commons. */
@@ -279,35 +283,39 @@ import org.springframework.web.bind.annotation.RestController;
   public List&lt;MealAverage&gt; commonsMealAverages(
       @Parameter(name = &quot;code&quot;, description = &quot;dining commons code, e.g. 'carrillo'&quot;)
           @PathVariable(&quot;code&quot;)
-          String code) {
-<span class="fc" id="L283">    log.info(&quot;statistics.commonsMealAverages code={}&quot;, code);</span>
-<span class="fc" id="L284">    Map&lt;String, double[]&gt; byMeal = new HashMap&lt;&gt;();</span>
-<span class="fc bfc" id="L285" title="All 2 branches covered.">    for (Review r : approvedReviews()) {</span>
-<span class="fc" id="L286">      MenuItem item = r.getItem();</span>
-<span class="fc bfc" id="L287" title="All 2 branches covered.">      if (item == null</span>
-<span class="fc bfc" id="L288" title="All 2 branches covered.">          || item.getMealCode() == null</span>
-<span class="fc bfc" id="L289" title="All 2 branches covered.">          || r.getItemsStars() == null</span>
-<span class="fc bfc" id="L290" title="All 2 branches covered.">          || !code.equals(item.getDiningCommonsCode())) {</span>
-<span class="fc" id="L291">        continue;</span>
+          String code,
+      @Parameter(name = &quot;period&quot;, description = &quot;ALL, 6M, 1M, or 1W&quot;)
+          @RequestParam(name = &quot;period&quot;, defaultValue = PERIOD_ALL)
+          String period) {
+<span class="fc" id="L290">    log.info(&quot;statistics.commonsMealAverages code={} period={}&quot;, code, period);</span>
+<span class="fc" id="L291">    LocalDateTime cutoff = cutoffForPeriod(period, LocalDateTime.now());</span>
+<span class="fc" id="L292">    Map&lt;String, double[]&gt; byMeal = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L293" title="All 2 branches covered.">    for (Review r : filterByCutoff(approvedReviews(), cutoff)) {</span>
+<span class="fc" id="L294">      MenuItem item = r.getItem();</span>
+<span class="fc bfc" id="L295" title="All 2 branches covered.">      if (item == null</span>
+<span class="fc bfc" id="L296" title="All 2 branches covered.">          || item.getMealCode() == null</span>
+<span class="fc bfc" id="L297" title="All 2 branches covered.">          || r.getItemsStars() == null</span>
+<span class="fc bfc" id="L298" title="All 2 branches covered.">          || !code.equals(item.getDiningCommonsCode())) {</span>
+<span class="fc" id="L299">        continue;</span>
       }
-<span class="fc" id="L293">      double[] acc = byMeal.computeIfAbsent(item.getMealCode(), k -&gt; new double[2]);</span>
-<span class="fc" id="L294">      acc[0] += r.getItemsStars();</span>
-<span class="fc" id="L295">      acc[1] += 1.0;</span>
-<span class="fc" id="L296">    }</span>
-<span class="fc" id="L297">    List&lt;MealAverage&gt; result = new ArrayList&lt;&gt;();</span>
-<span class="fc bfc" id="L298" title="All 2 branches covered.">    for (Map.Entry&lt;String, double[]&gt; entry : byMeal.entrySet()) {</span>
-<span class="fc" id="L299">      double[] acc = entry.getValue();</span>
-<span class="fc" id="L300">      long count = (long) acc[1];</span>
-<span class="fc" id="L301">      result.add(</span>
-<span class="fc" id="L302">          MealAverage.builder()</span>
-<span class="fc" id="L303">              .diningCommonsCode(code)</span>
-<span class="fc" id="L304">              .mealCode(entry.getKey())</span>
-<span class="fc" id="L305">              .averageStars(acc[0] / acc[1])</span>
-<span class="fc" id="L306">              .reviewCount(count)</span>
-<span class="fc" id="L307">              .build());</span>
-<span class="fc" id="L308">    }</span>
-<span class="fc" id="L309">    result.sort(Comparator.comparing(MealAverage::getMealCode));</span>
-<span class="fc" id="L310">    return result;</span>
+<span class="fc" id="L301">      double[] acc = byMeal.computeIfAbsent(item.getMealCode(), k -&gt; new double[2]);</span>
+<span class="fc" id="L302">      acc[0] += r.getItemsStars();</span>
+<span class="fc" id="L303">      acc[1] += 1.0;</span>
+<span class="fc" id="L304">    }</span>
+<span class="fc" id="L305">    List&lt;MealAverage&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L306" title="All 2 branches covered.">    for (Map.Entry&lt;String, double[]&gt; entry : byMeal.entrySet()) {</span>
+<span class="fc" id="L307">      double[] acc = entry.getValue();</span>
+<span class="fc" id="L308">      long count = (long) acc[1];</span>
+<span class="fc" id="L309">      result.add(</span>
+<span class="fc" id="L310">          MealAverage.builder()</span>
+<span class="fc" id="L311">              .diningCommonsCode(code)</span>
+<span class="fc" id="L312">              .mealCode(entry.getKey())</span>
+<span class="fc" id="L313">              .averageStars(acc[0] / acc[1])</span>
+<span class="fc" id="L314">              .reviewCount(count)</span>
+<span class="fc" id="L315">              .build());</span>
+<span class="fc" id="L316">    }</span>
+<span class="fc" id="L317">    result.sort(Comparator.comparing(MealAverage::getMealCode));</span>
+<span class="fc" id="L318">    return result;</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>
