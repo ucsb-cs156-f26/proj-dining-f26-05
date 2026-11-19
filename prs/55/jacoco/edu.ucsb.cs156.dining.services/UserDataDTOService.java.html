@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserDataDTOService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">proj-dining</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs156.dining.services</a> &gt; <span class="el_source">UserDataDTOService.java</span></div><h1>UserDataDTOService.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs156.dining.services;
+
+import edu.ucsb.cs156.dining.entities.Admin;
+import edu.ucsb.cs156.dining.entities.Moderator;
+import edu.ucsb.cs156.dining.entities.User;
+import edu.ucsb.cs156.dining.models.UserDTO;
+import edu.ucsb.cs156.dining.repositories.AdminRepository;
+import edu.ucsb.cs156.dining.repositories.ModeratorRepository;
+import edu.ucsb.cs156.dining.repositories.UserRepository;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+
+/**
+ * Builds pages of {@link UserDTO}s (users plus their admin/moderator flags) for the admin users
+ * page.
+ *
+ * &lt;p&gt;Modeled on UserDataDTOService in proj-frontiers. The admin and moderator emails are loaded
+ * once per page instead of being looked up once per user.
+ */
+@Service
+public class UserDataDTOService {
+  private final UserRepository userRepository;
+  private final AdminRepository adminRepository;
+  private final ModeratorRepository moderatorRepository;
+  private final List&lt;String&gt; adminEmails;
+
+  public UserDataDTOService(
+      UserRepository userRepository,
+      AdminRepository adminRepository,
+      ModeratorRepository moderatorRepository,
+<span class="fc" id="L39">      @Value(&quot;#{'${app.admin.emails}'.split(',')}&quot;) List&lt;String&gt; adminEmails) {</span>
+<span class="fc" id="L40">    this.userRepository = userRepository;</span>
+<span class="fc" id="L41">    this.adminRepository = adminRepository;</span>
+<span class="fc" id="L42">    this.moderatorRepository = moderatorRepository;</span>
+<span class="fc" id="L43">    this.adminEmails = adminEmails;</span>
+<span class="fc" id="L44">  }</span>
+
+  /**
+   * Returns one page of users, each with its admin and moderator flags.
+   *
+   * &lt;p&gt;A user is an admin if their email is in ADMIN_EMAILS or in the admins table, and a moderator
+   * if their email is in the moderators table (the same rules as GET /api/admin/users).
+   *
+   * &lt;p&gt;Pages are always sorted by user id (ascending), whatever sort the caller asks for, so a user
+   * stays in the same place on the admin users page when their roles change.
+   *
+   * @param pageable which page to return and its size (any sort in it is ignored)
+   * @return the requested page of users, sorted by id
+   */
+  public Page&lt;UserDTO&gt; getUserDataDTOs(Pageable pageable) {
+<span class="fc" id="L59">    Pageable sortedById =</span>
+<span class="fc" id="L60">        PageRequest.of(</span>
+<span class="fc" id="L61">            pageable.getPageNumber(), pageable.getPageSize(), Sort.by(Sort.Direction.ASC, &quot;id&quot;));</span>
+<span class="fc" id="L62">    Page&lt;User&gt; users = userRepository.findAll(sortedById);</span>
+
+<span class="fc" id="L64">    Set&lt;String&gt; admins = new HashSet&lt;&gt;(adminEmails);</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">    for (Admin admin : adminRepository.findAll()) {</span>
+<span class="fc" id="L66">      admins.add(admin.getEmail());</span>
+<span class="fc" id="L67">    }</span>
+<span class="fc" id="L68">    Set&lt;String&gt; moderators = new HashSet&lt;&gt;();</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">    for (Moderator moderator : moderatorRepository.findAll()) {</span>
+<span class="fc" id="L70">      moderators.add(moderator.getEmail());</span>
+<span class="fc" id="L71">    }</span>
+
+<span class="fc" id="L73">    List&lt;UserDTO&gt; userDTOs =</span>
+<span class="fc" id="L74">        users.getContent().stream()</span>
+<span class="fc" id="L75">            .map(</span>
+                user -&gt;
+<span class="fc" id="L77">                    new UserDTO(</span>
+                        user,
+<span class="fc" id="L79">                        admins.contains(user.getEmail()),</span>
+<span class="fc" id="L80">                        moderators.contains(user.getEmail())))</span>
+<span class="fc" id="L81">            .toList();</span>
+<span class="fc" id="L82">    return new PageImpl&lt;&gt;(userDTOs, sortedById, users.getTotalElements());</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>
