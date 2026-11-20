@@ -23,23 +23,36 @@ public abstract class WebTestCase {
   @Value("${app.playwright.headless:true}")
   private boolean runHeadless;
 
-  private static WireMockServer wireMockServer;
+  private static WireMockServer oauthWireMockServer;
+
+  /**
+   * Stands in for the UCSB Developer API (dining commons, meals and menu items). Tests can add or
+   * override stubs on it, or use it to verify the requests the backend made.
+   */
+  protected static WireMockServer ucsbApiWireMockServer;
 
   protected Browser browser;
   protected Page page;
 
   @BeforeAll
   public static void setupWireMock() {
-    wireMockServer = new WireMockServer(options().port(8090).globalTemplating(true));
+    oauthWireMockServer = new WireMockServer(options().port(8090).globalTemplating(true));
 
-    WiremockServiceImpl.setupOauthMocks(wireMockServer, false);
+    WiremockServiceImpl.setupOauthMocks(oauthWireMockServer, false);
 
-    wireMockServer.start();
+    oauthWireMockServer.start();
+
+    ucsbApiWireMockServer = new WireMockServer(options().port(UCSBDiningApiMocks.PORT));
+
+    UCSBDiningApiMocks.setupUCSBDiningApiMocks(ucsbApiWireMockServer);
+
+    ucsbApiWireMockServer.start();
   }
 
   @AfterAll
   public static void teardownWiremock() {
-    wireMockServer.stop();
+    oauthWireMockServer.stop();
+    ucsbApiWireMockServer.stop();
   }
 
   @AfterEach
@@ -48,7 +61,7 @@ public abstract class WebTestCase {
   }
 
   public void setupUser(boolean isAdmin) {
-    WiremockServiceImpl.setupOauthMocks(wireMockServer, isAdmin);
+    WiremockServiceImpl.setupOauthMocks(oauthWireMockServer, isAdmin);
 
     browser =
         Playwright.create()

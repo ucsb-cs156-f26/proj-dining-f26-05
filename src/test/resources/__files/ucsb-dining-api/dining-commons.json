@@ -1,0 +1,24 @@
+[
+  {
+    "name": "Carrillo",
+    "code": "carrillo",
+    "hasSackMeal": false,
+    "hasTakeOutMeal": false,
+    "hasDiningCam": true,
+    "location": {
+      "latitude": 34.409953,
+      "longitude": -119.85277
+    }
+  },
+  {
+    "name": "Portola",
+    "code": "portola",
+    "hasSackMeal": true,
+    "hasTakeOutMeal": true,
+    "hasDiningCam": true,
+    "location": {
+      "latitude": 34.417723,
+      "longitude": -119.867427
+    }
+  }
+]
