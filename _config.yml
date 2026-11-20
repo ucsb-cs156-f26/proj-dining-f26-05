@@ -23,4 +23,4 @@ repo_name: "TBD"
 repo: ucsb-cs156-f26/proj-dining-f26-05
 owner: ucsb-cs156-f26
 repo_name: proj-dining-f26-05
-pull_requests: [{"author":{"id":"MDQ6VXNlcjc5MTg1MTI1","is_bot":false,"login":"N-Nicholls","name":"Noah Nicholls"},"headRefName":"nicholls/7-wiremock-e2e","number":55,"title":"Adds WireMock server for the UCSB API and an end-to-end review test","url":"https://github.com/ucsb-cs156-f26/proj-dining-f26-05/pull/55"}]
+pull_requests: []
